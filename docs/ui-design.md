@@ -317,3 +317,7 @@ Tests now shows real static associations with strong direct-dependency or heuris
 ## Phase 4C file intelligence hub
 
 Selecting a file opens a compact hub with bounded source content, symbols, metadata, and actions into impact and graph while preserving Signal Map styling.
+
+## Phase 4D navigation
+
+Cross-feature navigation uses App-level repository/file context; search, hotspots, tests, and files can open the File Intelligence Hub without creating duplicate intelligence state.
