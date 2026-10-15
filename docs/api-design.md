@@ -296,3 +296,7 @@ Hotspots use static repository signals only: lines, symbol count, internal fan-i
 ## Phase 3G test relationship intelligence
 
 Phase 3G derives static associations between existing classified test files and source files. `GET /repositories/{repositoryId}/files/{fileId}/tests` returns tests associated with a source file; `GET /repositories/{repositoryId}/files/{fileId}/tested-sources` returns sources associated with a test file. Direct internal dependency evidence is `direct_dependency` / strong. Exact deterministic filename/path matches are `naming_convention` / heuristic. External and unresolved dependencies are ignored. No runtime execution, pass/fail, or coverage percentage is reported.
+
+## Phase 4B overview
+
+`GET /repositories/{repositoryId}/overview` returns selected READY snapshot counts for files, lines, symbols, internal dependencies, tests, languages, warnings, and hotspots.

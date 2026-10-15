@@ -64,6 +64,7 @@ export interface GraphNode { id: number; path: string; name: string; language: s
 export interface GraphEdge { id: number; source: number; target: number; kind: string; imported_name: string; source_line: number; source_column: number; evidence: string }
 export interface Hotspot { file_id:number; path:string; name:string; language:string; is_test:boolean; score:number; rank:number; metrics:{lines:number;symbols:number;fan_in:number;fan_out:number;impact_reach:number}; reasons:string[] }
 export interface TestRelationship { test_file_id:number; test_path:string; source_file_id:number; source_path:string; kind:string; evidence_level:string; evidence:string }
+export interface Overview { snapshot_id:number; file_count:number; total_lines:number; total_bytes:number; symbol_count:number; dependency_count:number; test_file_count:number; language_counts:Record<string,number>; warning_count:number; hotspot_count:number }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -94,4 +95,5 @@ export const api = {
   hotspots: (repositoryId:number) => request<{snapshot_id:number;items:Hotspot[];next_cursor:number|null;has_more:boolean;total:number}>(`/repositories/${repositoryId}/hotspots`),
   sourceTests: (repositoryId:number,fileId:number) => request<{snapshot_id:number;items:TestRelationship[]}>(`/repositories/${repositoryId}/files/${fileId}/tests`),
   testSources: (repositoryId:number,fileId:number) => request<{snapshot_id:number;items:TestRelationship[]}>(`/repositories/${repositoryId}/files/${fileId}/tested-sources`),
+  overview: (repositoryId:number) => request<Overview>(`/repositories/${repositoryId}/overview`),
 }

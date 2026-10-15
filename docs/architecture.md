@@ -519,3 +519,7 @@ AI explanation layer can follow once deterministic core analysis is reliable.
 ## Phase 3G test relationship intelligence
 
 Test relationships are derived from READY snapshot files and dependencies. Direct internal test imports are strong evidence; deterministic filename/path matches are heuristic associations. This phase does not execute tests or calculate runtime coverage.
+
+## Phase 4B repository overview
+
+Dashboard values are selected-repository READY-snapshot aggregates. No mock KPI values are used.

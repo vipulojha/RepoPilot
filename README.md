@@ -99,3 +99,7 @@ Phase 3E adds the real bounded Dependency Graph screen using React Flow. It proj
 Phase 3F adds deterministic, explainable repository hotspots based on static file, symbol, dependency, and bounded impact signals. Historical Git churn, test relationships, and AI are not used.
 
 Phase 3G adds deterministic static test relationships using existing test classification and dependency records. The Tests screen shows evidence level and explicitly does not execute tests or report runtime coverage.
+
+## Phase 4B repository overview
+
+The Dashboard now reads one selected repository and latest READY snapshot through the aggregate overview API. Statistics come from existing files, symbols, internal dependencies, test flags, scan warnings, language counts, and hotspot intelligence.
