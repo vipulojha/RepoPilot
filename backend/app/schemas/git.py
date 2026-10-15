@@ -52,3 +52,46 @@ class GitStatusResponse(BaseModel):
     untracked_count: int = 0
     deleted_count: int = 0
     conflicted_count: int = 0
+
+class GitChangedFile(BaseModel):
+    path: str
+    old_path: str | None = None
+    status: str
+    additions: int = 0
+    deletions: int = 0
+
+class GitCommit(BaseModel):
+    sha: str
+    short_sha: str
+    subject: str
+    author: str
+    committed_at: str
+    parents: list[str] = []
+    is_merge: bool = False
+    changed_files: int = 0
+    additions: int = 0
+    deletions: int = 0
+    files: list[GitChangedFile] = []
+
+class GitHistoryResponse(BaseModel):
+    items: list[GitCommit]
+    page: int
+    limit: int
+    has_more: bool
+    ref: str | None = None
+    detached: bool = False
+    empty: bool = False
+
+class GitFileHistoryResponse(BaseModel):
+    file_id: int
+    path: str
+    items: list[GitCommit]
+    has_more: bool
+
+class GitCompareResponse(BaseModel):
+    base: str
+    head: str
+    commits: int
+    files: list[GitChangedFile]
+    additions: int = 0
+    deletions: int = 0
