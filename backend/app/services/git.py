@@ -85,7 +85,7 @@ class GitService:
                 if i + 1 < len(records):
                     rename_from, i = records[i + 1], i + 1
             conflict = xy in {"DD", "AU", "UD", "UA", "DU", "AA", "UU"}
-            status = "untracked" if xy == "??" else "renamed" if "R" in xy else "deleted" if "D" in xy else "modified"
+            status = ("untracked" if xy == "??" else "renamed" if "R" in xy else "copied" if "C" in xy else "added" if "A" in xy else "deleted" if "D" in xy else "modified")
             result.append(GitFileStatus(path=path, status=status, index=xy[0], worktree=xy[1], rename_from=rename_from, conflict=conflict))
             i += 1
         return result
