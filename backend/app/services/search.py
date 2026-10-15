@@ -19,7 +19,7 @@ class SearchHit:
 def sanitize_query(query: str) -> str:
     tokens = re.findall(r"[\w./@#$+-]+", query.strip(), flags=re.UNICODE)
     if not tokens: raise ValueError("Search query must contain searchable text")
-    return " AND ".join(f'"{token.replace(chr(34), chr(34) * 2)}"' for token in tokens)
+    return " AND ".join(f'"{token.replace(chr(34), chr(34) * 2)}"*' for token in tokens)
 
 def index_document(db: Session, snapshot_id: int, entity_type: str, file_id: int, path: str, name: str, content: str, symbol_id: int | None = None):
     db.execute(text("""CREATE VIRTUAL TABLE IF NOT EXISTS search_documents USING fts5(
