@@ -85,6 +85,7 @@ export interface GitStatus {
   upstream: GitStatusUpstream | null
   remotes: GitStatusRemote[]
 }
+export interface ChangesResponse { snapshot_id:number; status:string; total:number; additions:number; deletions:number; risk_level:string; risk_reasons:string[]; changed_files:{file_id:number|null;path:string;additions:number;deletions:number;status:string}[]; affected_files:ImpactItem[]; hotspots:Hotspot[]; tests:TestRelationship[]; truncated:boolean }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -118,6 +119,7 @@ export const api = {
   testSources: (repositoryId:number,fileId:number) => request<{snapshot_id:number;items:TestRelationship[]}>(`/repositories/${repositoryId}/files/${fileId}/tested-sources`),
   overview: (repositoryId:number) => request<Overview>(`/repositories/${repositoryId}/overview`),
   gitStatus: (repositoryId:number) => request<GitStatus>(`/repositories/${repositoryId}/git-status`),
+  changes: (repositoryId:number) => request<ChangesResponse>(`/repositories/${repositoryId}/changes`),
   fileContent: (repositoryId:number,fileId:number) => request<{snapshot_id:number;file_id:number;content:string|null;available:boolean;reason:string|null}>(`/repositories/${repositoryId}/files/${fileId}/content`),
   symbols: (repositoryId:number,fileId:number) => request<{snapshot_id:number;items:{id:number;kind:string;name:string;qualified_name:string;start_line:number;end_line:number}[]}>(`/repositories/${repositoryId}/files/${fileId}/symbols`),
   forwardDependencies: (repositoryId:number,fileId:number) => request<{items:{target_file_id:number|null;imported_name:string;evidence:string}[]}>(`/repositories/${repositoryId}/dependencies/files/${fileId}/forward`),

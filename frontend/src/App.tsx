@@ -9,12 +9,12 @@ import { api, RepositoryFile, Scan } from './lib/api/client'
 import { Background, Controls, MiniMap, ReactFlow } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
-type Page = 'Dashboard' | 'Files' | 'File Detail' | 'Dependency Graph' | 'Search' | 'Impact Analysis' | 'Hotspots' | 'Tests'
+type Page = 'Dashboard' | 'Files' | 'File Detail' | 'Dependency Graph' | 'Search' | 'Impact Analysis' | 'Change Intelligence' | 'Hotspots' | 'Tests'
 
 const nav = [
   { label: 'OVERVIEW', items: [{ label: 'Dashboard', icon: LayoutDashboard }] },
   { label: 'EXPLORE', items: [{ label: 'Files', icon: Folder }, { label: 'Dependency Graph', icon: Network }, { label: 'Search', icon: Search }] },
-  { label: 'ANALYZE', items: [{ label: 'Impact Analysis', icon: Activity }, { label: 'Hotspots', icon: TriangleAlert }, { label: 'Tests', icon: TestTube2 }] },
+   { label: 'ANALYZE', items: [{ label: 'Impact Analysis', icon: Activity }, { label: 'Change Intelligence', icon: GitBranch }, { label: 'Hotspots', icon: TriangleAlert }, { label: 'Tests', icon: TestTube2 }] },
 ]
 
 const files = [
@@ -108,7 +108,8 @@ function App() {
         {page === 'File Detail' && <FileHub setPage={setPage} repositoryId={repositoryId} fileId={selectedFileId} />}
         {page === 'Dependency Graph' && <GraphView setPage={setPage} selectedRepositoryId={repositoryId} selectedFileId={selectedFileId} />}
         {page === 'Search' && <SearchView setPage={setPage} repositoryId={repositoryId} setSelectedFileId={setSelectedFileId} />}
-        {page === 'Impact Analysis' && <ImpactView setPage={setPage} repositoryId={repositoryId} selectedFileId={selectedFileId} />}
+         {page === 'Impact Analysis' && <ImpactView setPage={setPage} repositoryId={repositoryId} selectedFileId={selectedFileId} />}
+         {page === 'Change Intelligence' && <ChangeIntelligence setPage={setPage} repositoryId={repositoryId} setSelectedFileId={setSelectedFileId} />}
         {page === 'Hotspots' && <Hotspots repositoryId={repositoryId} setSelectedFileId={setSelectedFileId} setPage={setPage} />}
         {page === 'Tests' && <TestsView repositoryId={repositoryId} setSelectedFileId={setSelectedFileId} setPage={setPage} />}
       </div>
@@ -198,6 +199,21 @@ function Result({ type, title, path, line, text, tone, onClick }: { type: string
 function ImpactView({ setPage, repositoryId, selectedFileId }: { setPage: (p: Page) => void; repositoryId: number | null; selectedFileId: number | null }) { const fileId=selectedFileId;const [items,setItems]=useState<import('./lib/api/client').ImpactItem[]>([]);const run=()=>repositoryId&&fileId&&api.impact(repositoryId,[fileId]).then(r=>setItems(r.affected_files));return <><PageHeader eyebrow="Analyze / change impact" title="What could this change affect?" description="Trace reverse dependencies with evidence." action={<button className="button button-primary" onClick={run}>Run analysis</button>}/><Panel title="Potentially affected files" className="impact-results">{items.length?items.map(item=><div className="impact-row" key={item.file_id}><strong>{item.path}</strong><small>{item.dependency_path.map(node=>node.path).join(' → ')}</small></div>):<div className="empty-files"><Activity size={20}/><span>Run analysis to see affected files.</span></div>}</Panel></> }
 
 function Hotspots({ repositoryId, setSelectedFileId, setPage }: { repositoryId: number | null; setSelectedFileId:(id:number)=>void; setPage:(p:Page)=>void }) { const [items,setItems]=useState<import('./lib/api/client').Hotspot[]>([]);useEffect(()=>{if(repositoryId)api.hotspots(repositoryId).then(r=>setItems(r.items))},[repositoryId]);return <><PageHeader eyebrow="Analyze / repository signals" title="Hotspots" description="Static structural signals."/><Panel title="Structural hotspots">{items.length?items.map(item=><button className="hotspot-table-row" key={item.file_id} onClick={()=>{setSelectedFileId(item.file_id);setPage('File Detail')}}><strong>{item.path}</strong><b className="hot-number">{item.score}</b><span>{item.reasons[0]}</span></button>):<div className="empty-files"><span>No hotspot data.</span></div>}</Panel></> }
+
+function ChangeIntelligence({ setPage, repositoryId, setSelectedFileId }: { setPage:(p:Page)=>void; repositoryId:number|null; setSelectedFileId:(id:number)=>void }) {
+  const [data,setData]=useState<import('./lib/api/client').ChangesResponse|null>(null); const [loading,setLoading]=useState(false); const [error,setError]=useState('')
+  const load=()=>{if(!repositoryId)return;setLoading(true);setError('');api.changes(repositoryId).then(setData).catch(()=>setError('Change intelligence is unavailable.')).finally(()=>setLoading(false))}; useEffect(load,[repositoryId])
+  const open=(id:number|null)=>{if(id){setSelectedFileId(id);setPage('File Detail')}}
+  if(!repositoryId)return <><PageHeader eyebrow="Analyze / change intelligence" title="What changed?" description="Deterministic change scope and risk from the working tree."/><div className="panel empty-files"><GitBranch size={24}/><strong>Select a repository</strong></div></>
+  if(loading)return <><PageHeader eyebrow="Analyze / change intelligence" title="What changed?" description="Deterministic change scope and risk from the working tree."/><div className="panel empty-files"><Activity size={22}/><span>Loading change intelligence…</span></div></>
+  if(error)return <><PageHeader eyebrow="Analyze / change intelligence" title="What changed?" description="Deterministic change scope and risk from the working tree."/><div className="panel empty-files"><TriangleAlert size={22}/><strong>{error}</strong><button className="button button-quiet" onClick={load}>Try again</button></div></>
+  if(!data)return <div className="panel empty-files"><Activity size={22}/><span>No change data available.</span></div>
+  if(data.status==='NO_READY')return <div className="panel empty-files"><Activity size={22}/><strong>No READY snapshot</strong><span>Scan the repository before reviewing changes.</span></div>
+  if(data.status==='NOT_GIT')return <div className="panel empty-files"><GitBranch size={22}/><strong>Not a Git repository</strong></div>
+  if(data.status==='CLEAN')return <div className="panel empty-files"><ShieldCheck size={22}/><strong>Working tree clean</strong><span>No current changes to analyze.</span></div>
+  const list=(items:any[])=> <div className="change-file-list">{items.map(item=>{const id=item.file_id??item.source_file_id??null;const path=item.path??item.source_path??item.test_path??'Unknown file';return <button className="change-file-row" key={`${path}-${id}`} onClick={()=>open(id)}><strong>{path}</strong><small>{item.status??item.reasons?.[0]??''}</small></button>})}</div>
+  return <><PageHeader eyebrow="Analyze / change intelligence" title="What changed?" description="Deterministic change scope and risk from the working tree." action={<button className="button button-quiet" onClick={load}>Refresh</button>}/><div className="metrics-grid change-metrics"><Metric label="Changed" value={String(data.total)} detail="Files in working tree" icon={GitBranch} accent="cyan"/><Metric label="Additions" value={`+${data.additions}`} detail="Lines added" icon={ArrowUpRight} accent="green"/><Metric label="Deletions" value={`-${data.deletions}`} detail="Lines removed" icon={ArrowDownLeft} accent="red"/><Metric label="Risk" value={data.risk_level.toUpperCase()} detail="Deterministic assessment" icon={TriangleAlert} accent="amber"/></div><div className="change-grid"><Panel title="Risk reasons"><ul className="reason-list">{data.risk_reasons.map(reason=><li key={reason}>{reason}</li>)}</ul></Panel><Panel title="Changed files" action={data.truncated?<span className="muted">Truncated</span>:undefined}>{list(data.changed_files)}</Panel><Panel title="Affected files">{list(data.affected_files)}</Panel><Panel title="Hotspots">{list(data.hotspots)}<button className="button button-quiet" onClick={()=>setPage('Hotspots')}>Open Hotspots</button></Panel><Panel title="Tests">{list(data.tests)}<button className="button button-quiet" onClick={()=>setPage('Tests')}>Open Tests</button></Panel></div></>
+}
 
 function TestsView({ repositoryId, setSelectedFileId, setPage }: { repositoryId: number | null; setSelectedFileId:(id:number)=>void; setPage:(p:Page)=>void }) { const [items,setItems]=useState<import('./lib/api/client').TestRelationship[]>([]);useEffect(()=>{if(repositoryId)api.files(repositoryId).then(({items:files})=>{const test=files.find(file=>file.is_test);if(test)api.testSources(repositoryId,test.id).then(r=>setItems(r.items))})},[repositoryId]);return <><PageHeader eyebrow="Analyze / verification surface" title="Tests" description="Static associations only; tests are not executed."/><Panel title="Test relationships">{items.length?items.map(item=><button className="test-row" key={`${item.test_file_id}-${item.source_file_id}`} onClick={()=>{setSelectedFileId(item.source_file_id);setPage('File Detail')}}><strong>{item.test_path}</strong><span>{item.source_path}</span><Status tone={item.evidence_level==='strong'?'high':'medium'}>{item.evidence_level}</Status></button>):<div className="empty-files"><span>No deterministic test relationships.</span></div>}</Panel></> }
 
