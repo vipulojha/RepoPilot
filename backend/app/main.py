@@ -22,6 +22,7 @@ from app.api.v1.test_relationships import router as test_relationships_router
 from app.api.v1.overview import router as overview_router
 from app.api.v1.git import router as git_router
 from app.api.v1.git_history import router as git_history_router
+from app.api.v1.git_actions import router as git_actions_router
 from app.api.v1.changes import router as changes_router
 from app.config import get_settings
 from app.db.database import init_db
@@ -77,6 +78,7 @@ app.include_router(test_relationships_router, prefix="/api/v1")
 app.include_router(overview_router, prefix="/api/v1")
 app.include_router(git_router, prefix="/api/v1")
 app.include_router(git_history_router, prefix="/api/v1")
+app.include_router(git_actions_router, prefix="/api/v1")
 app.include_router(changes_router, prefix="/api/v1")
 
 frontend_dist = Path(__file__).resolve().parents[2] / "frontend" / "dist"

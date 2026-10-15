@@ -1,6 +1,7 @@
 import re
 import shutil
 import subprocess
+import threading
 from pathlib import Path
 
 from app.schemas.git import GitFileStatus, GitRemote, GitStatusResponse, GitUpstream
@@ -11,6 +12,8 @@ class GitServiceError(Exception):
 
 
 class GitService:
+    _locks: dict[str, threading.Lock] = {}
+    _locks_guard = threading.Lock()
     def __init__(self, *, timeout: float = 5.0, max_output: int = 1_000_000):
         self.timeout = timeout
         self.max_output = max_output
@@ -60,6 +63,71 @@ class GitService:
                 item.additions = 0 if additions == "-" else int(additions)
                 item.deletions = 0 if deletions == "-" else int(deletions)
         return result
+
+    def action(self, repository_path: str | Path, action: str, **kwargs):
+        root = self._validate_root(repository_path)
+        with self._lock(root):
+            before = self.status(root)
+            if before.conflicted_count:
+                return self._receipt(action, "conflict", "Resolve repository conflicts first", root)
+            try:
+                args: list[str]
+                if action in {"stage", "unstage"}:
+                    paths = self._paths(root, kwargs.get("paths", []))
+                    if not paths: raise GitServiceError("At least one repository-relative path is required")
+                    args = ["add"] if action == "stage" else ["reset", "--"]
+                    if action == "stage": args += ["--"]
+                    args += paths
+                elif action == "commit":
+                    message = (kwargs.get("message") or "").strip()
+                    if not message: raise GitServiceError("Commit message is required")
+                    if not before.staged_count: raise GitServiceError("No staged changes to commit")
+                    args = ["commit", "--no-verify", "-m", message]
+                elif action == "branch_create":
+                    name = self._branch(kwargs.get("name")); start = kwargs.get("start_point") or "HEAD"
+                    self._verify_commitish(root, start)
+                    args = ["branch", name, start]
+                elif action == "branch_switch":
+                    name = self._branch(kwargs.get("name"))
+                    if not before.clean and not kwargs.get("confirm_dirty"): raise GitServiceError("Working tree is dirty; confirm_dirty is required")
+                    args = ["switch", name]
+                elif action == "revert":
+                    if not kwargs.get("confirm"): raise GitServiceError("Revert confirmation is required")
+                    commit = self._commit(root, kwargs.get("commit")); args = ["revert", "--no-verify", "--no-edit", commit]
+                elif action in {"fetch", "push", "pull"}:
+                    remote = self._remote(root, kwargs.get("remote")); branch = kwargs.get("branch")
+                    if action in {"push", "pull"} and branch: self._branch(branch)
+                    if action == "fetch": args = ["fetch", "--", remote]
+                    elif action == "push": args = ["push", "--no-follow-tags", "--", remote, branch or before.branch or "HEAD"]
+                    else: args = ["pull", "--ff-only", "--", remote, branch or before.branch or "HEAD"]
+                else: raise GitServiceError("Unsupported Git action")
+                output = self._run(root, args)
+                return self._receipt(action, "succeeded", "Git action completed", root, output)
+            except GitServiceError as exc:
+                return self._receipt(action, "conflict" if "conflict" in str(exc).lower() else "failed", str(exc), root)
+
+    @classmethod
+    def _lock(cls, root: Path):
+        with cls._locks_guard: cls._locks.setdefault(str(root), threading.Lock()); return cls._locks[str(root)]
+    def _paths(self, root, paths):
+        if not paths: return []
+        for path in paths:
+            if not path or path.startswith("/") or ".." in Path(path).parts or "\\" in path: raise GitServiceError("Invalid repository-relative path")
+        return paths
+    def _branch(self, name):
+        if not name: raise GitServiceError("Branch name is required")
+        if subprocess.run(["git", "check-ref-format", "--branch", name], capture_output=True, text=True).returncode: raise GitServiceError("Invalid branch name")
+        return name
+    def _remote(self, root, name):
+        if not name or name not in [r.name for r in self._remotes(root)]: raise GitServiceError("Unknown remote")
+        return name
+    def _verify_commitish(self, root, value):
+        self._run(root, ["rev-parse", "--verify", f"{value}^{{commit}}"]); return value
+    def _commit(self, root, value):
+        if not value or any(c in value for c in " \t\n") or len(value) > 100: raise GitServiceError("Invalid commit identifier")
+        return self._run(root, ["rev-parse", "--verify", f"{value}^{{commit}}"]).strip()
+    def _receipt(self, action, status, message, root, output=""):
+        return {"action": action, "status": status, "message": message, "status_refresh": self.status(root), "intelligence_stale": status == "succeeded", "stdout": output[:2000]}
 
     def _validate_root(self, value: str | Path) -> Path:
         executable = shutil.which("git")

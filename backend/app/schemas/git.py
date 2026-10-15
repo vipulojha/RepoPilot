@@ -1,4 +1,5 @@
-from pydantic import BaseModel, ConfigDict
+from typing import Literal
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class GitFileStatus(BaseModel):
@@ -54,6 +55,27 @@ class GitStatusResponse(BaseModel):
     untracked_count: int = 0
     deleted_count: int = 0
     conflicted_count: int = 0
+
+class GitActionRequest(BaseModel):
+    action: Literal["stage", "unstage", "commit", "branch_create", "branch_switch", "fetch", "push", "pull", "revert"]
+    paths: list[str] = Field(default_factory=list)
+    message: str | None = Field(default=None, max_length=5000)
+    name: str | None = Field(default=None, max_length=255)
+    start_point: str | None = Field(default=None, max_length=255)
+    remote: str | None = Field(default=None, max_length=255)
+    branch: str | None = Field(default=None, max_length=255)
+    commit: str | None = Field(default=None, max_length=100)
+    confirm: bool = False
+    confirm_dirty: bool = False
+
+class GitActionReceipt(BaseModel):
+    action: str
+    status: Literal["succeeded", "rejected", "conflict", "failed"]
+    message: str
+    recovery: str | None = None
+    status_refresh: GitStatusResponse
+    intelligence_stale: bool = True
+    stdout: str = ""
 
 class GitChangedFile(BaseModel):
     path: str
