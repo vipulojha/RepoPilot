@@ -154,7 +154,7 @@ selected-scope commit, branch create/switch, fetch, push, pull, and revert
 operations through `POST /api/v1/repositories/{repository_id}/git/actions`.
 Actions validate paths and refs, never force-push, do not accept credentials,
 refresh Git status, and mark READY-snapshot intelligence stale after mutations.
-Merge, cherry-pick, reset, rebase, stash, and hosting-provider integrations are
+Merge, cherry-pick, reset, rebase, and hosting-provider integrations are
 deferred. Revert/pull/branch operations may require a clean tree and conflicts
 are left visible for manual recovery.
 
@@ -176,11 +176,21 @@ uv run repopilot changes /path/to/repository
 ```
 
 CLI output is readable by default and JSON with `--json`; errors go to stderr
-with nonzero exit codes. `status`, `history`, `changes`, `files`, `search`, and
-`git-status` are available without a READY snapshot where Git data permits. Run
-`scan` before snapshot-scoped commands (`summary`, `symbols`, `dependencies`,
-`impact`, `graph`, `hotspots`, and `tests`). CLI mutations are intentionally
-unsupported; use the existing API Git Actions surface for validated mutations.
+with nonzero exit codes. `status`, `history`, `details`, `file-history`,
+`compare`, `files`, and `search` can use Git/filesystem data without a READY
+snapshot. Use one persistent database for scan and later commands:
+
+```bash
+uv run repopilot --database /tmp/repopilot.db scan /path/to/repository
+uv run repopilot --database /tmp/repopilot.db summary /path/to/repository
+uv run repopilot --database /tmp/repopilot.db changes /path/to/repository --json
+```
+
+Run `scan` before snapshot-scoped commands (`summary`, `symbols`,
+`dependencies`, `impact`, `graph`, `hotspots`, `tests`, and `changes`). The CLI
+also supports `git status` as an alias for `git-status`. CLI mutations are
+intentionally unsupported; use the existing API Git Actions surface for
+validated mutations.
 
 ## Milestone 5B Git history intelligence
 

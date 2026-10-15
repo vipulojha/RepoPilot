@@ -20,6 +20,7 @@ from app.services.scans import create_scan_snapshot, latest_ready, run_scan
 from app.services.search import search_documents
 from app.services.test_relationships import relationships
 from app.services.scanner.scanner import ScanLimits
+from app.schemas.scans import scan_response
 
 VERSION = "0.2.0"
 
@@ -29,6 +30,8 @@ def _dump(value):
         return value.model_dump(mode="json")
     if isinstance(value, list): return [_dump(x) for x in value]
     if isinstance(value, dict): return {k: _dump(v) for k, v in value.items()}
+    if hasattr(value, "__table__"):
+        return {column.name: _dump(getattr(value, column.name)) for column in value.__table__.columns}
     return value
 
 
@@ -72,13 +75,24 @@ def _parser():
     x = add("compare"); x.add_argument("base"); x.add_argument("head")
     add("changes"); add("git-status")
     x = sub.add_parser("git", help="Git intelligence commands"); x.add_argument("git_command", choices=("status",)); x.add_argument("path", nargs="?", default="."); x.add_argument("--json", action="store_true")
-    x = add("scan"); x.add_argument("scan_command", nargs="?", choices=("status", "run"), default="run")
+    x = sub.add_parser("scan", help="scan a repository or inspect scan status")
+    x.add_argument("scan_args", nargs="*")
+    x.add_argument("--json", action="store_true")
     return p
 
 
 def main(argv=None):
     args = _parser().parse_args(argv)
     try:
+        if args.command == "scan":
+            if len(args.scan_args) > 2 or any(item.startswith("-") for item in args.scan_args):
+                raise ValueError("scan accepts PATH, or status [PATH]")
+            if args.scan_args and args.scan_args[0] in {"status", "run"}:
+                args.scan_command = args.scan_args[0]
+                args.path = args.scan_args[1] if len(args.scan_args) == 2 else "."
+            else:
+                args.scan_command = "run"
+                args.path = args.scan_args[0] if args.scan_args else "."
         root = _root(args.path)
         db_path = args.database or os.path.join(os.environ.get("TMPDIR", "/tmp"), f"repopilot-{os.getpid()}.db")
         engine = create_engine(f"sqlite:///{Path(db_path).resolve()}", connect_args={"check_same_thread": False})
@@ -89,9 +103,9 @@ def main(argv=None):
                 repo = Repository(name=root.name, path=str(root)); db.add(repo); db.commit(); db.refresh(repo)
             ready = latest_ready(db, repo.id)
             if args.command == "scan":
-                if args.scan_command == "status": value = {"repository_id": repo.id, "latest": ready}
+                if args.scan_command == "status": value = {"repository_id": repo.id, "latest": scan_response(ready) if ready else None}
                 else:
-                    snapshot = run_scan(db, create_scan_snapshot(db, repo.id).id, ScanLimits()); value = snapshot
+                    snapshot = run_scan(db, create_scan_snapshot(db, repo.id).id, ScanLimits()); value = scan_response(snapshot)
             elif args.command in {"status", "git-status", "git"}: value = GitService().status(root)
             elif args.command == "changes": value = ChangeIntelligenceService().analyze(db, repo.id, str(root))
             elif args.command == "history": value = GitHistoryService().history(root, limit=_limit(args.limit, 100), ref=args.ref)

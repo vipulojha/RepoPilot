@@ -1,4 +1,5 @@
 import subprocess
+import json
 import pytest
 
 
@@ -60,3 +61,23 @@ def test_cli_special_filename_is_data(tmp_path):
     assert result.returncode == 0
     assert name in result.stdout
     assert not (tmp_path / "cli-no-exec").exists()
+
+
+def test_cli_scan_and_ready_commands_use_persistent_database(fixture, tmp_path):
+    database = tmp_path / "repo.db"
+    scan = run_cli("--database", str(database), "scan", str(fixture), "--json")
+    assert scan.returncode == 0, scan.stderr
+    assert json.loads(scan.stdout)["status"] == "ready"
+    summary = run_cli("--database", str(database), "summary", str(fixture), "--json")
+    assert summary.returncode == 0, summary.stderr
+    assert json.loads(summary.stdout)["snapshot_id"]
+    scan_status = run_cli("--database", str(database), "scan", "status", str(fixture), "--json")
+    assert scan_status.returncode == 0, scan_status.stderr
+    assert json.loads(scan_status.stdout)["latest"]["status"] == "ready"
+
+
+def test_cli_snapshot_command_reports_stable_error_without_ready(fixture, tmp_path):
+    result = run_cli("--database", str(tmp_path / "empty.db"), "symbols", str(fixture), "--json")
+    assert result.returncode == 1
+    assert "No READY snapshot" in result.stderr
+    assert result.stdout == ""
