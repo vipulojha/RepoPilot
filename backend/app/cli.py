@@ -71,6 +71,7 @@ def _parser():
     x = add("file-history"); x.add_argument("relative"); x.add_argument("--file-id", type=int, default=0); x.add_argument("--limit", type=int, default=20)
     x = add("compare"); x.add_argument("base"); x.add_argument("head")
     add("changes"); add("git-status")
+    x = sub.add_parser("git", help="Git intelligence commands"); x.add_argument("git_command", choices=("status",)); x.add_argument("path", nargs="?", default="."); x.add_argument("--json", action="store_true")
     x = add("scan"); x.add_argument("scan_command", nargs="?", choices=("status", "run"), default="run")
     return p
 
@@ -91,7 +92,7 @@ def main(argv=None):
                 if args.scan_command == "status": value = {"repository_id": repo.id, "latest": ready}
                 else:
                     snapshot = run_scan(db, create_scan_snapshot(db, repo.id).id, ScanLimits()); value = snapshot
-            elif args.command in {"status", "git-status"}: value = GitService().status(root)
+            elif args.command in {"status", "git-status", "git"}: value = GitService().status(root)
             elif args.command == "changes": value = ChangeIntelligenceService().analyze(db, repo.id, str(root))
             elif args.command == "history": value = GitHistoryService().history(root, limit=_limit(args.limit, 100), ref=args.ref)
             elif args.command == "details": value = GitHistoryService().commit(root, args.sha)
