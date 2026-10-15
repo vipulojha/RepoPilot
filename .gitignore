@@ -1,5 +1,9 @@
 # Dependencies
 node_modules/
+.venv/
+__pycache__/
+*.db
+*.tsbuildinfo
 
 # Build and distribution output
 dist/

@@ -5,6 +5,7 @@ import {
   ListTree, Maximize2, Menu, Network, PanelLeft, Play, Search, Settings2, ShieldCheck,
   Sparkles, Terminal, TestTube2, TriangleAlert, X,
 } from 'lucide-react'
+import { api } from './lib/api/client'
 
 type Page = 'Dashboard' | 'Files' | 'Dependency Graph' | 'Search' | 'Impact Analysis' | 'Hotspots' | 'Tests'
 
@@ -69,6 +70,11 @@ function App() {
   const [page, setPage] = useState<Page>('Dashboard')
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [backendReady, setBackendReady] = useState(false)
+
+  useEffect(() => {
+    api.health().then(() => setBackendReady(true)).catch(() => setBackendReady(false))
+  }, [])
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -79,7 +85,7 @@ function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  return <div className="app-shell">
+  return <div className="app-shell" data-backend-ready={backendReady}>
     <Sidebar page={page} setPage={setPage} open={sidebarOpen} />
     <main className="main-shell">
       <header className="topbar">

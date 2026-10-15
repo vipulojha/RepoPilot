@@ -30,3 +30,52 @@ The Phase 1 design is documented in:
 Implementation has not started. The planned stack is a React + TypeScript +
 Vite frontend, a Python 3.12 + FastAPI backend, Tree-sitter analysis, SQLite
 with FTS5 search, and a single Docker deployment.
+
+## Current foundation
+
+The frontend visual prototype is complete. The backend now provides the
+minimal FastAPI, SQLite, configuration, logging, and repository metadata API
+foundation. Repository scanning, parsing, dependency analysis, search
+indexing, and impact analysis are not implemented yet.
+
+### Prerequisites
+
+- Node.js 22 (`.nvmrc`)
+- Python 3.12 (`backend/.python-version`)
+- `uv` for reproducible Python dependency installation
+- Docker for the container workflow
+
+### Local development
+
+```bash
+# frontend
+cd frontend
+npm ci
+npm run dev
+
+# backend, in another terminal
+cd backend
+uv sync --dev
+uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+The health endpoint is `GET http://127.0.0.1:8000/api/v1/health`. Copy
+`.env.example` to `.env` when local configuration is needed. The frontend uses
+`VITE_API_BASE_URL` for its single API client.
+
+### Tests and builds
+
+```bash
+cd backend && uv run pytest
+cd frontend && npm run typecheck && npm run build
+```
+
+### Docker
+
+```bash
+docker build -t repopilot .
+docker run --rm -p 3000:3000 repopilot
+```
+
+The container serves the built frontend and FastAPI health/API foundation. It
+does not analyze repositories yet.
