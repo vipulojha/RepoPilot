@@ -85,6 +85,11 @@ export interface GitStatus {
   upstream: GitStatusUpstream | null
   remotes: GitStatusRemote[]
 }
+export interface GitCommit { sha:string; short_sha:string; message:string; author:string; committed_at:string|null; parents:string[]; is_merge:boolean; files_changed:number; additions:number; deletions:number }
+export interface GitHistory { branch:string|null; detached:boolean; head:GitStatusHead|null; commits:GitCommit[]; next_cursor:string|null; has_more:boolean; truncated:boolean }
+export interface GitCommitDetail extends GitCommit { changed_files:{path:string;status:string;additions:number;deletions:number;file_id:number|null}[] }
+export interface GitFileHistory { file_id:number; path:string; commits:GitCommit[]; next_cursor:string|null; has_more:boolean; truncated:boolean }
+export interface GitCompare { base:string; head:string; files:{path:string;status:string;additions:number;deletions:number;file_id:number|null}[]; additions:number; deletions:number; truncated:boolean }
 export interface ChangesResponse { state:string; repository_id:number; snapshot_id:number|null; git:GitStatus|null; diff:{files:number;additions:number;deletions:number}; changed_files:{file_id:number|null;path:string;status:string;git:unknown;unresolved:boolean}[]; affected_files:ImpactItem[]; hotspots:Hotspot[]; tests:TestRelationship[]; risk:{score:number;level:string;reasons:string[];thresholds:Record<string,number>}; truncated:boolean }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -119,6 +124,12 @@ export const api = {
   testSources: (repositoryId:number,fileId:number) => request<{snapshot_id:number;items:TestRelationship[]}>(`/repositories/${repositoryId}/files/${fileId}/tested-sources`),
   overview: (repositoryId:number) => request<Overview>(`/repositories/${repositoryId}/overview`),
   gitStatus: (repositoryId:number) => request<GitStatus>(`/repositories/${repositoryId}/git-status`),
+  git: {
+    history: (repositoryId:number, cursor?:string, limit=20) => request<GitHistory>(`/repositories/${repositoryId}/git/history?limit=${limit}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`),
+    commit: (repositoryId:number, sha:string) => request<GitCommitDetail>(`/repositories/${repositoryId}/git/commits/${encodeURIComponent(sha)}`),
+    fileHistory: (repositoryId:number, fileId:number, cursor?:string, limit=20) => request<GitFileHistory>(`/repositories/${repositoryId}/git/files/${fileId}/history?limit=${limit}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`),
+    compare: (repositoryId:number, base:string, head='HEAD') => request<GitCompare>(`/repositories/${repositoryId}/git/compare?base=${encodeURIComponent(base)}&head=${encodeURIComponent(head)}`),
+  },
   changes: (repositoryId:number) => request<ChangesResponse>(`/repositories/${repositoryId}/changes`),
   fileContent: (repositoryId:number,fileId:number) => request<{snapshot_id:number;file_id:number;content:string|null;available:boolean;reason:string|null}>(`/repositories/${repositoryId}/files/${fileId}/content`),
   symbols: (repositoryId:number,fileId:number) => request<{snapshot_id:number;items:{id:number;kind:string;name:string;qualified_name:string;start_line:number;end_line:number}[]}>(`/repositories/${repositoryId}/files/${fileId}/symbols`),
