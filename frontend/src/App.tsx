@@ -12,10 +12,9 @@ import '@xyflow/react/dist/style.css'
 type Page = 'Dashboard' | 'Files' | 'File Detail' | 'Dependency Graph' | 'Search' | 'Impact Analysis' | 'Change Intelligence' | 'Hotspots' | 'Tests' | 'History' | 'Commit Detail' | 'Git Actions'
 
 const nav = [
-  { label: 'OVERVIEW', items: [{ label: 'Dashboard', icon: LayoutDashboard }] },
-  { label: 'EXPLORE', items: [{ label: 'Files', icon: Folder }, { label: 'History', icon: GitBranch }, { label: 'Dependency Graph', icon: Network }, { label: 'Search', icon: Search }] },
-   { label: 'ANALYZE', items: [{ label: 'Impact Analysis', icon: Activity }, { label: 'Change Intelligence', icon: GitBranch }, { label: 'Hotspots', icon: TriangleAlert }, { label: 'Tests', icon: TestTube2 }] },
-   { label: 'OPERATE', items: [{ label: 'Git Actions', icon: GitCommitHorizontal }] },
+  { label: 'REPOSITORY', items: [{ label: 'Dashboard', icon: LayoutDashboard }, { label: 'Files', icon: Folder }, { label: 'Search', icon: Search }] },
+  { label: 'INTELLIGENCE', items: [{ label: 'Dependency Graph', icon: Network }, { label: 'Impact Analysis', icon: Activity }, { label: 'Hotspots', icon: TriangleAlert }, { label: 'Tests', icon: TestTube2 }] },
+  { label: 'GIT', items: [{ label: 'History', icon: GitBranch }, { label: 'Change Intelligence', icon: GitBranch }, { label: 'Git Actions', icon: GitCommitHorizontal }] },
 ]
 
 const files = [
@@ -78,6 +77,7 @@ function App() {
   const [repositoryId, setRepositoryId] = useState<number | null>(() => Number(localStorage.getItem('repopilot.repositoryId')) || null)
   const [selectedFileId, setSelectedFileId] = useState<number | null>(null)
   const [selectedCommit, setSelectedCommit] = useState<string | null>(null)
+  const selectedRepository = repositories.find(item => item.id === repositoryId)
 
   useEffect(() => {
     api.health().then(() => setBackendReady(true)).catch(() => setBackendReady(false))
@@ -97,11 +97,11 @@ function App() {
   }, [])
 
   return <div className="app-shell" data-backend-ready={backendReady}>
-    <Sidebar page={page} setPage={setPage} open={sidebarOpen} />
+     <Sidebar page={page} setPage={setPage} open={sidebarOpen} setOpen={setSidebarOpen} />
     <main className="main-shell">
       <header className="topbar">
         <button className="icon-button mobile-menu" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Toggle navigation"><Menu size={17} /></button>
-        <div className="crumb"><span className="crumb-repo"><Braces size={15} /> repopilot</span><ChevronRight size={13} /><span>main</span><ChevronRight size={13} /><span className="muted">{page}</span></div>
+        <div className="crumb"><span className="crumb-repo"><Braces size={15} /> {selectedRepository?.name ?? 'RepoPilot'}</span><ChevronRight size={13} /><span>{selectedRepository?.branch ?? 'no branch'}</span><ChevronRight size={13} /><span className="muted">{page}</span></div>
         <div className="top-actions"><select className="filter-button repository-select" value={repositoryId ?? ''} onChange={event => setRepositoryId(Number(event.target.value) || null)}><option value="">No repository</option>{repositories.map(repo => <option value={repo.id} key={repo.id}>{repo.name}</option>)}</select><button className="button button-quiet workspace-action" onClick={addRepository}>Add</button><button className="button button-quiet workspace-action" onClick={removeRepository} disabled={!repositoryId}>Remove</button><button className="command-trigger" onClick={() => setPaletteOpen(true)}><Search size={15} /><span>Jump to anything</span><kbd>⌘ K</kbd></button><button className="icon-button" aria-label="Notifications"><Bell size={16} /><i className="notification-dot" /></button><button className="avatar">VP</button></div>
       </header>
       <div className="content-wrap">
@@ -123,9 +123,9 @@ function App() {
   </div>
 }
 
-function Sidebar({ page, setPage, open }: { page: Page; setPage: (page: Page) => void; open: boolean }) {
+function Sidebar({ page, setPage, open, setOpen }: { page: Page; setPage: (page: Page) => void; open: boolean; setOpen: (open: boolean) => void }) {
   return <aside className={`sidebar ${open ? '' : 'collapsed'}`}>
-    <div className="brand"><div className="brand-mark"><span>R</span><span className="brand-cursor">_</span></div>{open && <div><strong>RepoPilot</strong><small>repository intelligence</small></div>}<button className="icon-button sidebar-toggle" aria-label="Collapse sidebar"><PanelLeft size={16} /></button></div>
+    <div className="brand"><div className="brand-mark"><span>R</span><span className="brand-cursor">_</span></div>{open && <div><strong>RepoPilot</strong><small>repository intelligence</small></div>}<button className="icon-button sidebar-toggle" onClick={() => setOpen(!open)} aria-label={open ? 'Collapse sidebar' : 'Expand sidebar'}><PanelLeft size={16} /></button></div>
     <div className="repo-switcher"><div className="repo-symbol"><GitBranch size={14} /></div>{open && <div className="repo-label"><strong>repopilot</strong><span>main · local</span></div>}{open && <ChevronDown size={14} className="muted" />}</div>
     <nav className="nav-sections">{nav.map(section => <div className="nav-section" key={section.label}><div className="nav-label">{open && section.label}</div>{section.items.map(item => <button key={item.label} className={`nav-item ${page === item.label ? 'active' : ''}`} onClick={() => setPage(item.label as Page)} title={item.label}><item.icon size={16} /><span>{open && item.label}</span>{open && item.label === 'Impact Analysis' && <span className="nav-hot">NEW</span>}</button>)}</div>)}</nav>
     <div className="sidebar-bottom"><div className="scan-status"><span className="status-pulse" />{open && <div><strong>Analysis ready</strong><span>2m ago · snapshot 01</span></div>}</div><button className="nav-item" title="Settings"><Settings2 size={16} />{open && <span>Settings</span>}</button><button className="nav-item" title="Help"><CircleHelp size={16} />{open && <span>Help & shortcuts</span>}</button></div>
