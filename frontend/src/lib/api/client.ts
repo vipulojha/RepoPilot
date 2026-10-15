@@ -85,7 +85,7 @@ export interface GitStatus {
   upstream: GitStatusUpstream | null
   remotes: GitStatusRemote[]
 }
-export interface ChangesResponse { snapshot_id:number; status:string; total:number; additions:number; deletions:number; risk_level:string; risk_reasons:string[]; changed_files:{file_id:number|null;path:string;additions:number;deletions:number;status:string}[]; affected_files:ImpactItem[]; hotspots:Hotspot[]; tests:TestRelationship[]; truncated:boolean }
+export interface ChangesResponse { state:string; repository_id:number; snapshot_id:number|null; git:GitStatus|null; diff:{files:number;additions:number;deletions:number}; changed_files:{file_id:number|null;path:string;status:string;git:unknown;unresolved:boolean}[]; affected_files:ImpactItem[]; hotspots:Hotspot[]; tests:TestRelationship[]; risk:{score:number;level:string;reasons:string[];thresholds:Record<string,number>}; truncated:boolean }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {

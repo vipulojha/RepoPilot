@@ -138,3 +138,12 @@ branch or detached HEAD, commit metadata, working-tree counts, upstream
 ahead/behind state, remotes with credentials removed, local branches, tags, and
 shallow state. Git operations run against the registered repository root only;
 no Git actions, history, diffs, or hosting-provider integrations are included.
+
+## Milestone 5C Change Intelligence
+
+The Change Intelligence surface analyzes current read-only Git working-tree
+changes against the latest READY RepoPilot snapshot through
+`GET /api/v1/repositories/{repository_id}/changes`. It reports bounded diff
+statistics, affected reverse dependents, touched hotspots, associated tests,
+and deterministic explainable risk. It does not expose raw diff content or
+perform Git actions.
