@@ -305,3 +305,7 @@ The Impact Analysis view calls `POST /api/v1/repositories/{id}/impact` with chan
 ## Phase 3E dependency graph
 
 The graph screen is now API-backed and bounded. React Flow renders file nodes and dependency edges; backend projection owns snapshot, direction, traversal, and limits.
+
+## Phase 3F hotspots
+
+Hotspots now use real API data and show score, fan-in, fan-out, language, test status, and an explanation. Scores are static structural signals; historical Git churn is not currently used.

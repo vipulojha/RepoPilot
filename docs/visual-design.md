@@ -122,3 +122,7 @@ Impact Analysis is now real API-backed data while retaining Signal Map styling. 
 ## Phase 3E dependency graph
 
 Signal Map graph rendering now uses React Flow with real snapshot-scoped internal dependency edges, cyan directional edges, bounded neighborhoods, and a selected-root inspector.
+
+## Phase 3F hotspots
+
+The Hotspots screen uses Signal Map tables with real deterministic scores and compact reason indicators. No historical activity or fabricated risk metric is shown.

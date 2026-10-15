@@ -95,3 +95,5 @@ Phase 3C adds snapshot-isolated SQLite FTS5 search for files, paths, symbols, an
 Phase 3D adds deterministic reverse-dependency impact analysis through a real API and the existing Impact Analysis screen. It uses READY snapshots and internal dependency evidence only. Graph visualization, hotspots, test relationship analysis, and AI remain unimplemented.
 
 Phase 3E adds the real bounded Dependency Graph screen using React Flow. It projects existing dependency records only, preserves A → B direction, supports incoming/outgoing/both direction, depth and limits, and keeps Signal Map styling.
+
+Phase 3F adds deterministic, explainable repository hotspots based on static file, symbol, dependency, and bounded impact signals. Historical Git churn, test relationships, and AI are not used.

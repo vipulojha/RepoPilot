@@ -286,3 +286,9 @@ Phase 3D adds evidence-based reverse dependency impact analysis. `POST /reposito
 ## Phase 3E dependency graph
 
 Phase 3E adds a bounded graph projection over existing internal dependency records. `GET /repositories/{repositoryId}/graph` accepts root file, snapshot, direction (`both`, `incoming`, `outgoing`), depth, and node/edge limits. A → B remains source A depends on target B. Only READY snapshot internal edges are shown; external/unresolved dependencies are excluded. Results include deterministic nodes, evidence-bearing edges, and truncation metadata.
+
+## Phase 3F hotspots
+
+Hotspots use static repository signals only: lines, symbol count, internal fan-in, internal fan-out, and bounded reverse impact reach. Each signal is min-max normalized across eligible TEXT files; tied signals receive 0.5. Score = 100 × (0.20 lines + 0.20 symbols + 0.25 fan-in + 0.15 fan-out + 0.20 impact reach). Scores are clamped to 0–100 and rounded to two decimals. Ranking ties break by fan-in, impact reach, path, and file ID. Historical Git churn is not currently used.
+
+`GET /repositories/{repositoryId}/hotspots` returns READY-snapshot ranked files, metrics, score, and reasons. Binary/skipped files are excluded; tests are included by default with an explicit indicator.

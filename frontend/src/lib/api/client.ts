@@ -62,6 +62,7 @@ export interface SearchHit { type: string; file_id: number; symbol_id: number | 
 export interface ImpactItem { file_id: number; path: string; depth: number; changed_root_ids: number[]; dependency_path: { file_id: number; path: string }[]; evidence: { imported_name: string; kind: string; source_line: number; source_column: number; evidence: string }[] }
 export interface GraphNode { id: number; path: string; name: string; language: string; classification: string; is_test: boolean; incoming: number; outgoing: number }
 export interface GraphEdge { id: number; source: number; target: number; kind: string; imported_name: string; source_line: number; source_column: number; evidence: string }
+export interface Hotspot { file_id:number; path:string; name:string; language:string; is_test:boolean; score:number; rank:number; metrics:{lines:number;symbols:number;fan_in:number;fan_out:number;impact_reach:number}; reasons:string[] }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -88,4 +89,5 @@ export const api = {
   search: (repositoryId: number, query: string) => request<{ snapshot_id: number; items: SearchHit[]; next_cursor: number | null; has_more: boolean }>(`/repositories/${repositoryId}/search?q=${encodeURIComponent(query)}`),
   impact: (repositoryId: number, changedFileIds: number[], maxDepth = 3) => request<{ snapshot_id: number; changed_roots: { file_id: number; path: string }[]; affected_files: ImpactItem[]; counts: Record<string, number> }>(`/repositories/${repositoryId}/impact`, { method: 'POST', body: JSON.stringify({ changed_file_ids: changedFileIds, max_depth: maxDepth }) }),
   graph: (repositoryId: number, rootFileId: number, direction = 'both', depth = 2) => request<{ snapshot_id: number; root_file_id: number; nodes: GraphNode[]; edges: GraphEdge[]; node_count: number; edge_count: number; truncated: boolean; direction: string; depth: number }>(`/repositories/${repositoryId}/graph?root_file_id=${rootFileId}&direction=${direction}&depth=${depth}`),
+  hotspots: (repositoryId:number) => request<{snapshot_id:number;items:Hotspot[];next_cursor:number|null;has_more:boolean;total:number}>(`/repositories/${repositoryId}/hotspots`),
 }

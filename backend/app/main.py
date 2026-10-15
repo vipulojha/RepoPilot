@@ -17,6 +17,7 @@ from app.api.v1.dependencies import router as dependencies_router
 from app.api.v1.search import router as search_router
 from app.api.v1.impact import router as impact_router
 from app.api.v1.graph import router as graph_router
+from app.api.v1.hotspots import router as hotspots_router
 from app.config import get_settings
 from app.db.database import init_db
 
@@ -66,6 +67,7 @@ app.include_router(dependencies_router, prefix="/api/v1")
 app.include_router(search_router, prefix="/api/v1")
 app.include_router(impact_router, prefix="/api/v1")
 app.include_router(graph_router, prefix="/api/v1")
+app.include_router(hotspots_router, prefix="/api/v1")
 
 frontend_dist = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 if frontend_dist.is_dir():
