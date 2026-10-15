@@ -14,7 +14,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     DATABASE_URL=sqlite:////app/data/repopilot.db
 WORKDIR /app
 COPY backend/pyproject.toml backend/uv.lock ./backend/
-RUN pip install --no-cache-dir uv && uv sync --directory backend --frozen --no-dev
+RUN pip install --no-cache-dir uv==0.13.1 && uv sync --directory backend --frozen --no-dev
 COPY backend/app ./backend/app
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 RUN useradd --create-home --uid 10001 repopilot && mkdir -p /app/data && chown -R repopilot:repopilot /app

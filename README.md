@@ -73,12 +73,26 @@ cd frontend && npm run typecheck && npm run build
 ### Docker
 
 ```bash
-docker build -t repopilot .
-docker run --rm -p 3000:3000 repopilot
+docker build -t repopilot:local .
+docker volume create repopilot-data
+docker run --name repopilot-local -p 3000:3000 \
+  -v repopilot-data:/app/data repopilot:local
 ```
 
-The container serves the built frontend and FastAPI health/API foundation. It
-does not analyze repositories yet.
+The single container serves the built frontend and FastAPI API on port 3000.
+SQLite is stored in `/app/data`; mount a repository read-only when using the
+repository scan workflow, for example `-v "$PWD:/workspace:ro"`, then register
+`/workspace` through the API. Verify the container with:
+
+```bash
+curl http://127.0.0.1:3000/api/v1/health
+docker ps
+docker logs repopilot-local
+```
+
+Stop and remove the disposable container with `docker rm -f repopilot-local`.
+The named `repopilot-data` volume can be reused across runs or removed when
+its data is no longer needed.
 
 ## Repository scanner foundation
 
