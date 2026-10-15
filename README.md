@@ -1,10 +1,10 @@
 # RepoPilot — Repository Intelligence & Dependency Explorer
 
-RepoPilot will be a self-hosted application for exploring repositories, understanding their structure, and analyzing relationships between files, symbols, and dependencies. This repository currently contains only the initial project structure; application implementation will be added in future work.
+RepoPilot is a self-hosted application for exploring repositories, understanding their structure, and analyzing relationships between files, symbols, and dependencies.
 
 ## Current status
 
-**Project initialization**
+**Backend and terminal CLI implemented; frontend remains the web client.**
 
 ## Planned capabilities
 
@@ -27,16 +27,15 @@ The Phase 1 design is documented in:
 - [REST API design](docs/api-design.md)
 - [UI/UX design](docs/ui-design.md)
 
-Implementation has not started. The planned stack is a React + TypeScript +
+The stack is a React + TypeScript +
 Vite frontend, a Python 3.12 + FastAPI backend, Tree-sitter analysis, SQLite
 with FTS5 search, and a single Docker deployment.
 
 ## Current foundation
 
-The frontend visual prototype is complete. The backend now provides the
-minimal FastAPI, SQLite, configuration, logging, and repository metadata API
-foundation. Repository scanning, parsing, dependency analysis, search
-indexing, and impact analysis are not implemented yet.
+The frontend visual prototype is complete. The backend provides FastAPI,
+SQLite, repository scanning, parsing, dependency analysis, search indexing,
+impact analysis, Git history, change intelligence, and the terminal CLI.
 
 ### Prerequisites
 
@@ -178,7 +177,10 @@ uv run repopilot changes /path/to/repository
 
 CLI output is readable by default and JSON with `--json`; errors go to stderr
 with nonzero exit codes. `status`, `history`, `changes`, `files`, `search`, and
-`git status` are available without a READY snapshot where Git data permits.
+`git-status` are available without a READY snapshot where Git data permits. Run
+`scan` before snapshot-scoped commands (`summary`, `symbols`, `dependencies`,
+`impact`, `graph`, `hotspots`, and `tests`). CLI mutations are intentionally
+unsupported; use the existing API Git Actions surface for validated mutations.
 
 ## Milestone 5B Git history intelligence
 
