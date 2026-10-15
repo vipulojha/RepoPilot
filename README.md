@@ -148,6 +148,17 @@ statistics, affected reverse dependents, touched hotspots, associated tests,
 and deterministic explainable risk. It does not expose raw diff content or
 perform Git actions.
 
+## Milestone 5D Essential Git Actions
+
+The Git Actions workspace exposes explicit, repository-scoped stage, unstage,
+selected-scope commit, branch create/switch, fetch, push, pull, and revert
+operations through `POST /api/v1/repositories/{repository_id}/git/actions`.
+Actions validate paths and refs, never force-push, do not accept credentials,
+refresh Git status, and mark READY-snapshot intelligence stale after mutations.
+Merge, cherry-pick, reset, rebase, stash, and hosting-provider integrations are
+deferred. Revert/pull/branch operations may require a clean tree and conflicts
+are left visible for manual recovery.
+
 ## Milestone 5B Git history intelligence
 
 The History workspace and read-only Git API expose bounded commit history,

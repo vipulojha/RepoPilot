@@ -82,7 +82,9 @@ class GitService:
                     message = (kwargs.get("message") or "").strip()
                     if not message: raise GitServiceError("Commit message is required")
                     if not before.staged_count: raise GitServiceError("No staged changes to commit")
-                    args = ["commit", "--no-verify", "-m", message]
+                    paths = self._paths(root, kwargs.get("paths", []))
+                    if not paths: raise GitServiceError("Select staged paths before committing")
+                    args = ["commit", "--no-verify", "-m", message, "--", *paths]
                 elif action == "branch_create":
                     name = self._branch(kwargs.get("name")); start = kwargs.get("start_point") or "HEAD"
                     self._verify_commitish(root, start)
@@ -93,7 +95,7 @@ class GitService:
                     args = ["switch", name]
                 elif action == "revert":
                     if not kwargs.get("confirm"): raise GitServiceError("Revert confirmation is required")
-                    commit = self._commit(root, kwargs.get("commit")); args = ["revert", "--no-verify", "--no-edit", commit]
+                    commit = self._commit(root, kwargs.get("commit")); args = ["revert", "--no-edit", commit]
                 elif action in {"fetch", "push", "pull"}:
                     remote = self._remote(root, kwargs.get("remote")); branch = kwargs.get("branch")
                     if action in {"push", "pull"} and branch: self._branch(branch)
@@ -127,7 +129,11 @@ class GitService:
         if not value or any(c in value for c in " \t\n") or len(value) > 100: raise GitServiceError("Invalid commit identifier")
         return self._run(root, ["rev-parse", "--verify", f"{value}^{{commit}}"]).strip()
     def _receipt(self, action, status, message, root, output=""):
-        return {"action": action, "status": status, "message": message, "status_refresh": self.status(root), "intelligence_stale": status == "succeeded", "stdout": output[:2000]}
+        refreshed = self.status(root)
+        return {"action": action, "status": status, "message": message,
+                "recovery_guidance": "Resolve the repository state manually before retrying." if status == "conflict" else None,
+                "git": refreshed, "status_refresh": refreshed,
+                "intelligence_stale": status == "succeeded", "stdout_summary": output[:2000]}
 
     def _validate_root(self, value: str | Path) -> Path:
         executable = shutil.which("git")

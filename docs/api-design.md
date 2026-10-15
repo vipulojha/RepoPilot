@@ -304,3 +304,14 @@ Phase 3G derives static associations between existing classified test files and 
 ## Phase 4C file hub
 
 The file detail route uses `GET /files/{fileId}/content` plus existing symbol, dependency, and relationship APIs. Binary/skipped content is not decoded.
+
+## Milestone 5D Git Actions
+
+`POST /api/v1/repositories/{repositoryId}/git/actions` accepts one typed action
+(`stage`, `unstage`, `commit`, `branch_create`, `branch_switch`, `fetch`,
+`push`, `pull`, or `revert`) and returns a refreshed Git status plus an
+`intelligence_stale` flag. Paths and refs are validated against the registered
+repository; remote URLs and stderr are never returned. Commits require an
+explicit non-empty message and selected staged paths. No force-push or
+arbitrary Git command is supported. Merge/cherry-pick/reset/rebase/stash and
+hosting-provider actions are deferred.

@@ -72,10 +72,11 @@ class GitActionReceipt(BaseModel):
     action: str
     status: Literal["succeeded", "rejected", "conflict", "failed"]
     message: str
-    recovery: str | None = None
+    recovery_guidance: str | None = None
+    git: GitStatusResponse | None = None
     status_refresh: GitStatusResponse
     intelligence_stale: bool = True
-    stdout: str = ""
+    stdout_summary: str = ""
 
 class GitChangedFile(BaseModel):
     path: str
