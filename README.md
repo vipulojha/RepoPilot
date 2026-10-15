@@ -79,3 +79,9 @@ docker run --rm -p 3000:3000 repopilot
 
 The container serves the built frontend and FastAPI health/API foundation. It
 does not analyze repositories yet.
+
+## Repository scanner foundation
+
+Register a repository through `POST /api/v1/repositories`, then start a scan with `POST /api/v1/repositories/{id}/scans`. Poll the scan detail route until its status is `ready`, then use the files and tree routes. Scans store relative POSIX paths and never follow symlinks outside the registered root.
+
+The scanner excludes `.git/`, common dependency/build/cache directories, and repository `.gitignore` entries. Binary and oversized files are recorded with metadata without being decoded as source. A failed scan remains isolated from the previous READY snapshot.

@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     cors_allowed_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     app_version: str = "0.1.0"
+    scan_max_file_bytes: int = 2_000_000
+    scan_max_files: int = 50_000
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

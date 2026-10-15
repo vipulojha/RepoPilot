@@ -5,7 +5,7 @@ import {
   ListTree, Maximize2, Menu, Network, PanelLeft, Play, Search, Settings2, ShieldCheck,
   Sparkles, Terminal, TestTube2, TriangleAlert, X,
 } from 'lucide-react'
-import { api } from './lib/api/client'
+import { api, RepositoryFile, Scan } from './lib/api/client'
 
 type Page = 'Dashboard' | 'Files' | 'Dependency Graph' | 'Search' | 'Impact Analysis' | 'Hotspots' | 'Tests'
 
@@ -133,7 +133,55 @@ function MiniGraph() { return <div className="mini-graph"><div className="graph-
 function GraphNode({ x, title, sub, tone }: { x: string; title: string; sub: string; tone: string }) { return <div className={`graph-node ${x} ${tone}`}><div className="node-icon"><Braces size={13} /></div><div><strong>{title}</strong><span>{sub}</span></div></div> }
 function HotspotRows() { return <div className="hotspot-list"><div><span className="rank">01</span><FileCode2 size={15} /><span><strong>AuthService.ts</strong><small>src/auth · 18 dependents</small></span><b className="hot-number">18</b></div><div><span className="rank">02</span><FileCode2 size={15} /><span><strong>Router.ts</strong><small>src/core · 15 dependents</small></span><b className="hot-number">15</b></div><div><span className="rank">03</span><FileCode2 size={15} /><span><strong>SessionManager.ts</strong><small>src/session · 12 dependents</small></span><b className="hot-number">12</b></div></div> }
 
-function FilesView({ setPage }: { setPage: (p: Page) => void }) { const [expanded, setExpanded] = useState(true); return <><PageHeader eyebrow="Explore / repository tree" title="Files" description="Navigate every file, symbol, and relationship in context." action={<button className="button button-quiet"><Folder size={15} /> Add repository</button>} /><div className="file-layout"><Panel title="Repository" action={<button className="icon-button"><Settings2 size={14} /></button>} className="file-tree-panel"><div className="tree-search"><Search size={14} /><span>Filter files...</span><kbd>/</kbd></div><div className="tree-root"><button onClick={() => setExpanded(!expanded)}><ChevronDown size={14} /><Folder size={15} className="folder-icon" /><strong>repopilot</strong></button>{expanded && <div className="tree-children"><TreeFolder name="src" count="284" open /><TreeFolder name="auth" count="34" open indent /><TreeFolder name="AuthService.ts" file selected indent2 onClick={() => setPage('Impact Analysis')} /><TreeFolder name="AuthController.ts" file indent2 /><TreeFolder name="SessionManager.ts" file indent /><TreeFolder name="ui" count="92" open /><TreeFolder name="tests" count="76" /></div>}</div></Panel><Panel title="Source files" action={<div className="view-toggle"><button className="active">List</button><button>Stats</button></div>} className="file-list-panel"><div className="file-toolbar"><span>1,284 files</span><button className="filter-button">All languages <ChevronDown size={13} /></button><button className="filter-button">Sort: relevance <ChevronDown size={13} /></button></div><div className="file-table"><div className="table-head"><span>File</span><span>Language</span><span>Size</span><span>Relations</span></div>{files.map(file => <button className={`file-row ${file.selected ? 'selected' : ''}`} key={file.path} onClick={() => file.selected && setPage('Impact Analysis')}><span><FileCode2 size={15} /><strong>{file.name}</strong><small>{file.path}</small></span><span><i className={`lang-dot ${file.type}`} />{file.type === 'test' ? 'TypeScript test' : file.type.toUpperCase()}</span><span>{file.meta}</span><span className="relation-count">{file.selected ? '18' : '—'}</span></button>)}</div></Panel></div></> }
+function FilesView({ setPage }: { setPage: (p: Page) => void }) {
+  const [expanded, setExpanded] = useState(true)
+  const [repositoryId, setRepositoryId] = useState<number | null>(null)
+  const [scan, setScan] = useState<Scan | null>(null)
+  const [items, setItems] = useState<RepositoryFile[]>([])
+  const [message, setMessage] = useState('')
+
+  const refresh = async (id: number) => {
+    try {
+      const [latest, page] = await Promise.all([api.latestScan(id), api.files(id)])
+      setScan(latest)
+      setItems(page.items)
+      setMessage('')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Unable to load repository files')
+    }
+  }
+
+  useEffect(() => {
+    let cancelled = false
+    api.repositories().then(async ({ items: repositories }) => {
+      if (cancelled || repositories.length === 0) return
+      setRepositoryId(repositories[0].id)
+      await refresh(repositories[0].id)
+    }).catch(() => setMessage('No repository is available'))
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    if (!repositoryId || !scan || !['queued', 'scanning', 'finalizing'].includes(scan.status)) return
+    const timer = window.setInterval(() => api.scan(repositoryId, scan.id).then(next => {
+      setScan(next)
+      if (next.status === 'ready') refresh(repositoryId)
+    }).catch(() => setMessage('Unable to poll scan status')), 750)
+    return () => window.clearInterval(timer)
+  }, [repositoryId, scan?.id, scan?.status])
+
+  const startScan = async () => {
+    if (!repositoryId) return
+    try { setScan(await api.startScan(repositoryId)); await refresh(repositoryId) } catch (error) { setMessage(error instanceof Error ? error.message : 'Unable to start scan') }
+  }
+  const action = <button className="button button-quiet" onClick={startScan} disabled={!repositoryId || ['queued', 'scanning', 'finalizing'].includes(scan?.status ?? '')}><Folder size={15} /> {scan?.status === 'ready' ? 'Rescan' : 'Scan repository'}</button>
+  if (!repositoryId) return <><PageHeader eyebrow="Explore / repository tree" title="Files" description="Navigate every file, symbol, and relationship in context." action={action} /><div className="panel empty-files"><Folder size={24} /><strong>No repository loaded</strong><span>Register a repository from the API before scanning files.</span></div></>
+  if (!scan) return <><PageHeader eyebrow="Explore / repository tree" title="Files" description="Navigate every file, symbol, and relationship in context." action={action} /><div className="panel empty-files"><Activity size={24} /><strong>Repository has not been scanned</strong><span>Start a scan to build the first file snapshot.</span></div>{message && <div className="error-line">{message}</div>}</>
+  if (scan.status === 'failed') return <><PageHeader eyebrow="Explore / repository tree" title="Files" description="Navigate every file, symbol, and relationship in context." action={action} /><div className="panel empty-files"><TriangleAlert size={24} /><strong>Scan failed</strong><span>{scan.error_message ?? 'The repository could not be scanned.'}</span></div></>
+  return <><PageHeader eyebrow={`Explore / repository tree · snapshot ${scan.id}`} title="Files" description="Navigate every file, symbol, and relationship in context." action={action} /><div className="scan-strip"><Status tone={scan.status === 'ready' ? 'high' : 'medium'}>{scan.status}</Status><span>{scan.processed_files} / {scan.discovered_files || '…'} files · {scan.percentage}%</span></div><div className="file-layout"><Panel title="Repository" action={<button className="icon-button"><Settings2 size={14} /></button>} className="file-tree-panel"><div className="tree-search"><Search size={14} /><span>Filter files...</span><kbd>/</kbd></div><div className="tree-root"><button onClick={() => setExpanded(!expanded)}><ChevronDown size={14} /><Folder size={15} className="folder-icon" /><strong>repository</strong></button>{expanded && <div className="tree-children"><TreeFolder name="Files" count={String(items.length)} open />{items.slice(0, 12).map(file => <TreeFolder key={file.id} name={file.name} file indent onClick={() => setPage('Files')} />)}</div>}</div></Panel><Panel title="Source files" action={<span className="muted">{items.length} files</span>} className="file-list-panel"><div className="file-toolbar"><span>{scan.statistics.file_count} files · {scan.statistics.total_lines} lines</span><button className="filter-button">All languages <ChevronDown size={13} /></button><button className="filter-button">Sorted by path <ChevronDown size={13} /></button></div><div className="file-table"><div className="table-head"><span>File</span><span>Language</span><span>Size</span><span>Lines</span></div>{items.map(file => <button className="file-row" key={file.id}><span><FileCode2 size={15} /><strong>{file.name}</strong><small>{file.relative_path}</small></span><span><i className={`lang-dot ${file.language.toLowerCase()}`} />{file.language}{file.is_test && ' · test'}</span><span>{formatBytes(file.size_bytes)}</span><span className="relation-count">{file.line_count ?? '—'}</span></button>)}</div></Panel></div></>
+}
+
+function formatBytes(value: number) { return value < 1024 ? `${value} B` : value < 1024 * 1024 ? `${(value / 1024).toFixed(1)} KB` : `${(value / 1024 / 1024).toFixed(1)} MB` }
 function TreeFolder({ name, count, file, selected, open, indent = false, indent2 = false, onClick }: { name: string; count?: string; file?: boolean; selected?: boolean; open?: boolean; indent?: boolean; indent2?: boolean; onClick?: () => void }) { return <button onClick={onClick} className={`tree-row ${selected ? 'selected' : ''} ${indent ? 'indent' : ''} ${indent2 ? 'indent2' : ''}`}>{file ? <FileCode2 size={14} /> : open ? <ChevronDown size={13} /> : <ChevronRight size={13} />} {!file && <Folder size={14} className="folder-icon" />}<span>{name}</span>{count && <small>{count}</small>}</button> }
 
 function GraphView({ setPage }: { setPage: (p: Page) => void }) { return <><PageHeader eyebrow="Explore / relationships" title="Dependency Graph" description="See how modules connect. Expand the neighborhood, not the noise." action={<button className="button button-primary" onClick={() => setPage('Impact Analysis')}><Activity size={15} /> Analyze selected</button>} /><div className="graph-toolbar"><button className="filter-button"><Network size={14} /> Files <ChevronDown size={13} /></button><button className="filter-button"><ArrowDownLeft size={14} /> Incoming <ChevronDown size={13} /></button><button className="filter-button">Depth 2 <ChevronDown size={13} /></button><button className="filter-button">Group: Module <ChevronDown size={13} /></button><span className="toolbar-spacer" /><button className="icon-button"><Search size={15} /></button><button className="icon-button"><Maximize2 size={15} /></button></div><div className="graph-workspace"><div className="graph-canvas"><div className="graph-grid large" /><div className="canvas-label">NEIGHBORHOOD · 18 NODES · 24 EDGES</div><div className="big-lines"><span className="bline b1" /><span className="bline b2" /><span className="bline b3" /><span className="bline b4" /><span className="bline b5" /></div><BigGraphNode className="root-node" title="AuthService.ts" path="src/auth" tone="selected" /><BigGraphNode className="gn1" title="AuthController.ts" path="src/auth" tone="cyan" /><BigGraphNode className="gn2" title="SessionManager.ts" path="src/session" tone="violet" /><BigGraphNode className="gn3" title="AuthMiddleware.ts" path="src/auth" tone="cyan" /><BigGraphNode className="gn4" title="LoginPage.tsx" path="src/ui" tone="amber" /><BigGraphNode className="gn5" title="auth.test.ts" path="tests" tone="test" /><div className="canvas-controls"><button>+</button><button>−</button><span /><button><Maximize2 size={14} /></button></div></div><aside className="graph-inspector"><div className="inspector-kicker">SELECTED FILE</div><div className="selected-file"><div className="file-symbol cyan-bg"><FileCode2 size={16} /></div><div><strong>AuthService.ts</strong><span>src/auth/AuthService.ts</span></div></div><div className="inspector-stats"><div><strong>18</strong><span>dependents</span></div><div><strong>6</strong><span>dependencies</span></div></div><div className="inspector-section"><div className="inspector-title">Relationships</div><div className="relationship"><ArrowDownLeft size={13} /><span>Imported by</span><b>14</b></div><div className="relationship"><ArrowUpRight size={13} /><span>Imports</span><b>6</b></div><div className="relationship"><TestTube2 size={13} /><span>Referenced by tests</span><b>2</b></div></div><button className="button button-primary full" onClick={() => setPage('Impact Analysis')}><Activity size={14} /> Run impact analysis</button></aside></div><div className="graph-legend"><span><i className="legend-line cyan" />Import</span><span><i className="legend-line violet" />Transitive</span><span><i className="legend-line amber" />Test reference</span><span className="legend-note">Showing 18 of 1,284 files · expand a module to explore</span></div></> }

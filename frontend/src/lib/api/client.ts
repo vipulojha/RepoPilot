@@ -21,6 +21,44 @@ export interface RepositoryRegistration {
   branch?: string
 }
 
+export interface Scan {
+  id: number
+  repository_id: number
+  status: 'queued' | 'scanning' | 'finalizing' | 'ready' | 'failed'
+  started_at: string | null
+  completed_at: string | null
+  processed_files: number
+  discovered_files: number
+  percentage: number
+  statistics: { file_count: number; total_bytes: number; total_lines: number }
+  warnings: string[]
+  error_message?: string | null
+}
+
+export interface RepositoryFile {
+  id: number
+  snapshot_id: number
+  relative_path: string
+  name: string
+  extension: string
+  language: string
+  classification: string
+  size_bytes: number
+  line_count: number | null
+  is_binary: boolean
+  is_test: boolean
+  warning: string | null
+}
+
+export interface FileTreeNode {
+  name: string
+  path: string
+  kind: 'directory' | 'file'
+  language?: string | null
+  size_bytes?: number | null
+  child_count?: number | null
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: { 'Content-Type': 'application/json', ...init?.headers },
@@ -37,4 +75,10 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(payload),
   }),
+  scans: (repositoryId: number) => request<Scan[]>(`/repositories/${repositoryId}/scans`),
+  latestScan: (repositoryId: number) => request<Scan>(`/repositories/${repositoryId}/scans/latest`),
+  startScan: (repositoryId: number) => request<Scan>(`/repositories/${repositoryId}/scans`, { method: 'POST', body: JSON.stringify({ force: false }) }),
+  scan: (repositoryId: number, scanId: number) => request<Scan>(`/repositories/${repositoryId}/scans/${scanId}`),
+  files: (repositoryId: number, params: Record<string, string | number | boolean | undefined> = {}) => request<{ snapshot_id: number; items: RepositoryFile[]; next_cursor: number | null; has_more: boolean }>(`/repositories/${repositoryId}/files?${new URLSearchParams(Object.entries(params).filter(([, value]) => value !== undefined).map(([key, value]) => [key, String(value)]))}`),
+  tree: (repositoryId: number, parentPath = '') => request<{ snapshot_id: number; path: string; items: FileTreeNode[] }>(`/repositories/${repositoryId}/files/tree?parent_path=${encodeURIComponent(parentPath)}`),
 }

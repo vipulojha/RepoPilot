@@ -232,3 +232,19 @@ heuristics, not defect claims.
 - Long scans are jobs; graph/search/impact remain request/response queries.
 - Request IDs appear in logs and error envelopes, never source content.
 - DTO contract tests pin the shapes above before frontend integration.
+
+## Phase 2B metadata scan
+
+Phase 2B implements metadata-only scanning. A scan creates a snapshot and file metadata; it does not parse symbols, resolve imports, build graphs, or index search content.
+
+Implemented routes:
+
+- `POST /repositories/{repositoryId}/scans` accepts `{"force": false}`.
+- `GET /repositories/{repositoryId}/scans` lists snapshots newest first.
+- `GET /repositories/{repositoryId}/scans/latest` returns the latest READY snapshot only.
+- `GET /repositories/{repositoryId}/scans/{scanId}` returns lifecycle and progress.
+- `GET /repositories/{repositoryId}/files` supports `snapshot_id`, `path_prefix`, `language`, `is_test`, `limit`, and cursor pagination.
+- `GET /repositories/{repositoryId}/files/{fileId}` returns file metadata.
+- `GET /repositories/{repositoryId}/files/tree` supports `snapshot_id`, `parent_path`, `depth`, and `include_files`.
+
+Only READY snapshots are valid file/API data. The scanner excludes `.git/`, default build/cache directories, and repository `.gitignore` matches. Binary and oversized files are recorded safely. Tree-sitter, symbols, dependencies, FTS5 search, graphs, and impact analysis remain future phases.
