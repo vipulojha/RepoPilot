@@ -300,3 +300,7 @@ Phase 3G derives static associations between existing classified test files and 
 ## Phase 4B overview
 
 `GET /repositories/{repositoryId}/overview` returns selected READY snapshot counts for files, lines, symbols, internal dependencies, tests, languages, warnings, and hotspots.
+
+## Phase 4C file hub
+
+The file detail route uses `GET /files/{fileId}/content` plus existing symbol, dependency, and relationship APIs. Binary/skipped content is not decoded.

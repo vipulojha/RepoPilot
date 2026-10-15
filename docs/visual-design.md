@@ -130,3 +130,7 @@ The Hotspots screen uses Signal Map tables with real deterministic scores and co
 ## Phase 3G test relationships
 
 The Tests view uses compact Signal Map evidence rows, distinguishing strong direct dependencies from heuristic naming associations.
+
+## Phase 4C file intelligence hub
+
+Signal Map now connects selected files to bounded source content, symbols, file signals, impact, and graph actions.

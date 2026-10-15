@@ -88,6 +88,7 @@ export const api = {
   startScan: (repositoryId: number) => request<Scan>(`/repositories/${repositoryId}/scans`, { method: 'POST', body: JSON.stringify({ force: false }) }),
   scan: (repositoryId: number, scanId: number) => request<Scan>(`/repositories/${repositoryId}/scans/${scanId}`),
   files: (repositoryId: number, params: Record<string, string | number | boolean | undefined> = {}) => request<{ snapshot_id: number; items: RepositoryFile[]; next_cursor: number | null; has_more: boolean }>(`/repositories/${repositoryId}/files?${new URLSearchParams(Object.entries(params).filter(([, value]) => value !== undefined).map(([key, value]) => [key, String(value)]))}`),
+  file: (repositoryId:number,fileId:number) => request<RepositoryFile>(`/repositories/${repositoryId}/files/${fileId}`),
   tree: (repositoryId: number, parentPath = '') => request<{ snapshot_id: number; path: string; items: FileTreeNode[] }>(`/repositories/${repositoryId}/files/tree?parent_path=${encodeURIComponent(parentPath)}`),
   search: (repositoryId: number, query: string) => request<{ snapshot_id: number; items: SearchHit[]; next_cursor: number | null; has_more: boolean }>(`/repositories/${repositoryId}/search?q=${encodeURIComponent(query)}`),
   impact: (repositoryId: number, changedFileIds: number[], maxDepth = 3) => request<{ snapshot_id: number; changed_roots: { file_id: number; path: string }[]; affected_files: ImpactItem[]; counts: Record<string, number> }>(`/repositories/${repositoryId}/impact`, { method: 'POST', body: JSON.stringify({ changed_file_ids: changedFileIds, max_depth: maxDepth }) }),
@@ -96,4 +97,8 @@ export const api = {
   sourceTests: (repositoryId:number,fileId:number) => request<{snapshot_id:number;items:TestRelationship[]}>(`/repositories/${repositoryId}/files/${fileId}/tests`),
   testSources: (repositoryId:number,fileId:number) => request<{snapshot_id:number;items:TestRelationship[]}>(`/repositories/${repositoryId}/files/${fileId}/tested-sources`),
   overview: (repositoryId:number) => request<Overview>(`/repositories/${repositoryId}/overview`),
+  fileContent: (repositoryId:number,fileId:number) => request<{snapshot_id:number;file_id:number;content:string|null;available:boolean;reason:string|null}>(`/repositories/${repositoryId}/files/${fileId}/content`),
+  symbols: (repositoryId:number,fileId:number) => request<{snapshot_id:number;items:{id:number;kind:string;name:string;qualified_name:string;start_line:number;end_line:number}[]}>(`/repositories/${repositoryId}/files/${fileId}/symbols`),
+  forwardDependencies: (repositoryId:number,fileId:number) => request<{items:{target_file_id:number|null;imported_name:string;evidence:string}[]}>(`/repositories/${repositoryId}/dependencies/files/${fileId}/forward`),
+  reverseDependencies: (repositoryId:number,fileId:number) => request<{items:{source_file_id:number;imported_name:string;evidence:string}[]}>(`/repositories/${repositoryId}/dependencies/files/${fileId}/reverse`),
 }

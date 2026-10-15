@@ -313,3 +313,7 @@ Hotspots now use real API data and show score, fan-in, fan-out, language, test s
 ## Phase 3G test relationships
 
 Tests now shows real static associations with strong direct-dependency or heuristic naming evidence. Runtime coverage and test execution are intentionally absent.
+
+## Phase 4C file intelligence hub
+
+Selecting a file opens a compact hub with bounded source content, symbols, metadata, and actions into impact and graph while preserving Signal Map styling.

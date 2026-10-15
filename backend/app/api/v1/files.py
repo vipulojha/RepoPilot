@@ -1,11 +1,12 @@
 from pathlib import PurePosixPath
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.db.models import RepositoryFile, ScanSnapshot
+from app.db.models import Repository, RepositoryFile, ScanSnapshot
 from app.schemas.files import FileListResponse, FileResponse, TreeNode, TreeResponse
 from app.services.scans import latest_ready
 
@@ -62,3 +63,16 @@ def get_file(repository_id: int, file_id: int, snapshot_id: int | None = None, d
     file = db.scalar(select(RepositoryFile).where(RepositoryFile.id == file_id, RepositoryFile.snapshot_id == snapshot.id))
     if file is None: raise HTTPException(404, "File not found")
     return file
+
+@router.get("/{file_id}/content")
+def file_content(repository_id: int, file_id: int, snapshot_id: int | None = None, db: Session = Depends(get_db)):
+    snapshot = ready_snapshot(db, repository_id, snapshot_id)
+    file = db.scalar(select(RepositoryFile).where(RepositoryFile.id == file_id, RepositoryFile.snapshot_id == snapshot.id))
+    if file is None: raise HTTPException(404, "File not found")
+    if file.is_binary or file.classification != "TEXT": return {"snapshot_id": snapshot.id, "file_id": file.id, "content": None, "available": False, "reason": file.classification.lower()}
+    root = Path(db.get(Repository, repository_id).path).resolve()
+    path = (root / file.relative_path).resolve()
+    if root not in path.parents: raise HTTPException(422, "File path escapes repository root")
+    try: content = path.read_text(encoding="utf-8", errors="replace")
+    except OSError: return {"snapshot_id": snapshot.id, "file_id": file.id, "content": None, "available": False, "reason": "unreadable"}
+    return {"snapshot_id": snapshot.id, "file_id": file.id, "content": content[:1_000_000], "available": True, "reason": None}

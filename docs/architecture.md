@@ -523,3 +523,7 @@ Test relationships are derived from READY snapshot files and dependencies. Direc
 ## Phase 4B repository overview
 
 Dashboard values are selected-repository READY-snapshot aggregates. No mock KPI values are used.
+
+## Phase 4C file hub
+
+The file hub bridges source content, symbols, dependencies, tests, hotspots, impact, graph, and search using existing APIs. It is a viewer, not an editor or test runner.
