@@ -66,6 +66,24 @@ export interface Hotspot { file_id:number; path:string; name:string; language:st
 export interface TestRelationship { test_file_id:number; test_path:string; source_file_id:number; source_path:string; kind:string; evidence_level:string; evidence:string }
 export interface Overview { snapshot_id:number; file_count:number; total_lines:number; total_bytes:number; symbol_count:number; dependency_count:number; test_file_count:number; language_counts:Record<string,number>; warning_count:number; hotspot_count:number }
 
+export interface GitStatusHead { sha: string; short_sha: string; message: string; author: string; committed_at: string | null }
+export interface GitStatusUpstream { name: string; ahead: number; behind: number }
+export interface GitStatusRemote { name: string; url: string; fetch_url?: string | null }
+export interface GitStatus {
+  is_git_repository: boolean
+  branch: string | null
+  detached: boolean
+  head: GitStatusHead | null
+  clean: boolean
+  staged_count: number
+  unstaged_count: number
+  untracked_count: number
+  ahead: number
+  behind: number
+  upstream: GitStatusUpstream | null
+  remotes: GitStatusRemote[]
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: { 'Content-Type': 'application/json', ...init?.headers },
@@ -97,6 +115,7 @@ export const api = {
   sourceTests: (repositoryId:number,fileId:number) => request<{snapshot_id:number;items:TestRelationship[]}>(`/repositories/${repositoryId}/files/${fileId}/tests`),
   testSources: (repositoryId:number,fileId:number) => request<{snapshot_id:number;items:TestRelationship[]}>(`/repositories/${repositoryId}/files/${fileId}/tested-sources`),
   overview: (repositoryId:number) => request<Overview>(`/repositories/${repositoryId}/overview`),
+  gitStatus: (repositoryId:number) => request<GitStatus>(`/repositories/${repositoryId}/git-status`),
   fileContent: (repositoryId:number,fileId:number) => request<{snapshot_id:number;file_id:number;content:string|null;available:boolean;reason:string|null}>(`/repositories/${repositoryId}/files/${fileId}/content`),
   symbols: (repositoryId:number,fileId:number) => request<{snapshot_id:number;items:{id:number;kind:string;name:string;qualified_name:string;start_line:number;end_line:number}[]}>(`/repositories/${repositoryId}/files/${fileId}/symbols`),
   forwardDependencies: (repositoryId:number,fileId:number) => request<{items:{target_file_id:number|null;imported_name:string;evidence:string}[]}>(`/repositories/${repositoryId}/dependencies/files/${fileId}/forward`),
