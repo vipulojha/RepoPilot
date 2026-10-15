@@ -297,3 +297,7 @@ overview, select a highlighted auth file, and click Analyze selected. Search
 and impact use the same entity IDs and breadcrumbs, so every transition feels
 like one investigation instead of separate demos. The final click opens
 `auth.test.ts`, proving the output leads to an actionable verification point.
+
+## Phase 3D impact analysis
+
+The Impact Analysis view calls `POST /api/v1/repositories/{id}/impact` with changed file IDs and a bounded depth. Results follow reverse internal dependencies, preserve evidence/path data, merge multiple roots, and exclude external/unresolved relationships.

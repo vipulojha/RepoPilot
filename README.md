@@ -91,3 +91,5 @@ Phase 3A adds syntax-only Tree-sitter symbol extraction for Python, JavaScript/J
 Phase 3B adds snapshot-scoped dependency intelligence. Supported imports from Python, JavaScript/JSX, TypeScript/TSX, and Java are classified as internal, external, or unresolved and exposed through forward/reverse dependency APIs. Search, graph UI, impact analysis, hotspots, test relationships, and AI are not implemented.
 
 Phase 3C adds snapshot-isolated SQLite FTS5 search for files, paths, symbols, and source text. Search is available through the repository search API and the existing Search screen. Graph UI, impact analysis, hotspots, test relationships, and AI remain unimplemented.
+
+Phase 3D adds deterministic reverse-dependency impact analysis through a real API and the existing Impact Analysis screen. It uses READY snapshots and internal dependency evidence only. Graph visualization, hotspots, test relationship analysis, and AI remain unimplemented.

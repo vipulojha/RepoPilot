@@ -278,3 +278,7 @@ Only READY snapshots are exposed. JavaScript/TypeScript relative paths support c
 Phase 3C adds SQLite FTS5 search over READY snapshot file paths/names, symbols, qualified names, and analyzable source text. Search results distinguish `symbol`, `file`, and `code` types, include bounded snippets, and use deterministic ranking. Queries are treated as plain text and FTS operators are not exposed.
 
 `GET /api/v1/repositories/{repositoryId}/search` accepts `q`, `snapshot_id`, `scope`, `language`, `limit`, and `cursor`. Binary, oversized, skipped, and unreadable source is not indexed as content. Search indexing completes before a snapshot becomes READY; previous READY indexes remain available while a new snapshot is built.
+
+## Phase 3D impact analysis
+
+Phase 3D adds evidence-based reverse dependency impact analysis. `POST /repositories/{repositoryId}/impact` accepts changed file IDs, optional READY snapshot, and bounded maximum depth. An edge A → B means A depends on B, so changing B traverses incoming internal edges to A. Depth 0 returns no affected files; depth 1 returns direct dependents; default maximum depth is 3. External and unresolved dependencies are excluded. Results merge overlapping roots, avoid cycles, preserve dependency paths and source evidence, and are ordered by depth/path.

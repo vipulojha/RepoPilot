@@ -114,3 +114,7 @@ nodes, search results, and impact groups. They validate visual hierarchy only.
 There are no API calls, fake fetches, backend routes, or claims that the data
 is live. Future API hooks should replace presentation arrays at route boundaries
 using the DTOs defined in `docs/api-design.md`.
+
+## Phase 3D impact analysis
+
+Impact Analysis is now real API-backed data while retaining Signal Map styling. Changed roots and affected files are distinct; results include depth and dependency paths.

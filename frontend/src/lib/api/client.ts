@@ -59,6 +59,7 @@ export interface FileTreeNode {
   child_count?: number | null
 }
 export interface SearchHit { type: string; file_id: number; symbol_id: number | null; path: string; name: string; language: string | null; line: number | null; snippet: string; rank: number }
+export interface ImpactItem { file_id: number; path: string; depth: number; changed_root_ids: number[]; dependency_path: { file_id: number; path: string }[]; evidence: { imported_name: string; kind: string; source_line: number; source_column: number; evidence: string }[] }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -83,4 +84,5 @@ export const api = {
   files: (repositoryId: number, params: Record<string, string | number | boolean | undefined> = {}) => request<{ snapshot_id: number; items: RepositoryFile[]; next_cursor: number | null; has_more: boolean }>(`/repositories/${repositoryId}/files?${new URLSearchParams(Object.entries(params).filter(([, value]) => value !== undefined).map(([key, value]) => [key, String(value)]))}`),
   tree: (repositoryId: number, parentPath = '') => request<{ snapshot_id: number; path: string; items: FileTreeNode[] }>(`/repositories/${repositoryId}/files/tree?parent_path=${encodeURIComponent(parentPath)}`),
   search: (repositoryId: number, query: string) => request<{ snapshot_id: number; items: SearchHit[]; next_cursor: number | null; has_more: boolean }>(`/repositories/${repositoryId}/search?q=${encodeURIComponent(query)}`),
+  impact: (repositoryId: number, changedFileIds: number[], maxDepth = 3) => request<{ snapshot_id: number; changed_roots: { file_id: number; path: string }[]; affected_files: ImpactItem[]; counts: Record<string, number> }>(`/repositories/${repositoryId}/impact`, { method: 'POST', body: JSON.stringify({ changed_file_ids: changedFileIds, max_depth: maxDepth }) }),
 }
