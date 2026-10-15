@@ -3,7 +3,10 @@ node_modules/
 .venv/
 __pycache__/
 *.db
+*.sqlite
+*.sqlite3
 *.tsbuildinfo
+data/
 
 # Build and distribution output
 dist/
@@ -48,3 +51,14 @@ tmp/
 temp/
 *.tmp
 *.temp
+
+# Certificates and private credentials
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+service-account*.json
+
+# Generated graph analysis output
+graphify-out/
