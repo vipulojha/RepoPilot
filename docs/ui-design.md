@@ -1,7 +1,8 @@
 # RepoPilot UI/UX Design
 
-Status: Phase 1 specification. This document is the source of truth for the
-future frontend. No frontend implementation is included.
+Status: Phase 1 specification. `docs/visual-design.md` records the implemented
+Signal Map visual direction; this document remains the screen and interaction
+contract. The current frontend uses static presentation data only.
 
 ## 1. Product feel
 
@@ -14,6 +15,12 @@ tool rather than a presentation slide.
 
 Do not use hero gradients, oversized marketing cards, fake chat, gratuitous
 motion, or a rainbow of status colors.
+
+The implementation commits to **Signal Map**: a source-editor and dependency-
+graph visual language with near-black surfaces, Space Grotesk UI text, DM Mono
+metadata/code, cyan direct relationships, violet transitive context, and amber
+test/warning signals. See [`visual-design.md`](visual-design.md) for tokens and
+implementation detail.
 
 ## 2. Navigation and shell
 
