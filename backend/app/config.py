@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     app_version: str = "0.1.0"
     scan_max_file_bytes: int = 2_000_000
     scan_max_files: int = 50_000
+    parse_max_file_bytes: int = 2_000_000
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

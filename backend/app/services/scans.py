@@ -4,9 +4,12 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.models import Repository, RepositoryFile, ScanSnapshot
+from app.db.models import Repository, RepositoryFile, ScanSnapshot, Symbol
 from app.services.scanner.ignore import build_ignore_policy
 from app.services.scanner.scanner import ScanLimits, discover_files, metadata_for_file, resolve_repository_root
+from app.services.parser.extractor import extract_symbols
+from app.services.parser.service import parse_source
+from app.config import get_settings
 
 
 def create_scan_snapshot(db: Session, repository_id: int) -> ScanSnapshot:
@@ -38,7 +41,20 @@ def run_scan(db: Session, snapshot_id: int, limits: ScanLimits | None = None) ->
         for item in discovered:
             try:
                 metadata = metadata_for_file(root, item.path, limits)
-                db.add(RepositoryFile(snapshot_id=snapshot.id, **metadata.__dict__, classification="SKIPPED" if metadata.warning and metadata.line_count is None and not metadata.is_binary else "BINARY" if metadata.is_binary else "TEXT"))
+                file_row = RepositoryFile(snapshot_id=snapshot.id, **metadata.__dict__, classification="SKIPPED" if metadata.warning and metadata.line_count is None and not metadata.is_binary else "BINARY" if metadata.is_binary else "TEXT")
+                db.add(file_row)
+                db.flush()
+                if metadata.line_count is not None and not metadata.is_binary and metadata.warning is None:
+                    source = item.path.read_bytes()
+                    parsed = parse_source(metadata.language, source, metadata.relative_path, get_settings().parse_max_file_bytes)
+                    warnings.extend(f"{metadata.relative_path}: {warning.message}" for warning in parsed.warnings)
+                    if parsed.tree is not None:
+                        created_symbols: dict[str, Symbol] = {}
+                        for symbol in extract_symbols(parsed.tree.root_node, source):
+                            row = Symbol(snapshot_id=snapshot.id, file_id=file_row.id, kind=symbol.kind, name=symbol.name, qualified_name=symbol.qualified_name, start_line=symbol.start_line, start_column=symbol.start_column, end_line=symbol.end_line, end_column=symbol.end_column, signature=symbol.signature, parent_symbol_id=created_symbols.get(symbol.parent_name).id if symbol.parent_name and symbol.parent_name in created_symbols else None)
+                            db.add(row)
+                            db.flush()
+                            created_symbols[symbol.qualified_name] = row
                 snapshot.processed_files += 1
                 if metadata.warning:
                     warnings.append(f"{metadata.relative_path}: {metadata.warning}")

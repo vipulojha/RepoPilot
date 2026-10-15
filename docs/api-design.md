@@ -248,3 +248,15 @@ Implemented routes:
 - `GET /repositories/{repositoryId}/files/tree` supports `snapshot_id`, `parent_path`, `depth`, and `include_files`.
 
 Only READY snapshots are valid file/API data. The scanner excludes `.git/`, default build/cache directories, and repository `.gitignore` matches. Binary and oversized files are recorded safely. Tree-sitter, symbols, dependencies, FTS5 search, graphs, and impact analysis remain future phases.
+
+## Phase 3A symbol intelligence
+
+Phase 3A adds syntax-only Tree-sitter parsing for Python, JavaScript, JSX, TypeScript, TSX, and Java. Supported declarations become snapshot-scoped symbols with names, qualified names, source ranges, signatures, and parent IDs. Malformed source produces warnings; unsupported, binary, empty, or oversized files remain valid metadata files without symbols.
+
+Implemented routes:
+
+- `GET /repositories/{repositoryId}/symbols` accepts `snapshot_id`, `file_id`, `kind`, `name`, `limit`, and cursor.
+- `GET /repositories/{repositoryId}/files/{fileId}/symbols` lists symbols for a READY file snapshot.
+- `GET /repositories/{repositoryId}/symbols/{symbolId}` returns one symbol.
+
+Import/dependency extraction, FTS5 search, graph analysis, impact analysis, hotspots, and AI remain outside Phase 3A.

@@ -12,6 +12,7 @@ from app.api.v1.health import router as health_router
 from app.api.v1.files import router as files_router
 from app.api.v1.router import router as repository_router
 from app.api.v1.scans import router as scans_router
+from app.api.v1.symbols import file_symbols_router, router as symbols_router
 from app.config import get_settings
 from app.db.database import init_db
 
@@ -55,6 +56,8 @@ app.include_router(health_router, prefix="/api/v1")
 app.include_router(repository_router, prefix="/api/v1")
 app.include_router(scans_router, prefix="/api/v1")
 app.include_router(files_router, prefix="/api/v1")
+app.include_router(symbols_router, prefix="/api/v1")
+app.include_router(file_symbols_router, prefix="/api/v1")
 
 frontend_dist = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 if frontend_dist.is_dir():

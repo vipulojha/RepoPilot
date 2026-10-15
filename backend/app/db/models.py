@@ -45,6 +45,7 @@ class ScanSnapshot(Base):
     files: Mapped[list["RepositoryFile"]] = relationship(
         back_populates="snapshot", cascade="all, delete-orphan"
     )
+    symbols: Mapped[list["Symbol"]] = relationship(cascade="all, delete-orphan")
 
 
 class RepositoryFile(Base):
@@ -65,3 +66,26 @@ class RepositoryFile(Base):
     warning: Mapped[str | None] = mapped_column(Text)
 
     snapshot: Mapped[ScanSnapshot] = relationship(back_populates="files")
+    symbols: Mapped[list["Symbol"]] = relationship(back_populates="file", cascade="all, delete-orphan")
+
+
+class Symbol(Base):
+    __tablename__ = "symbols"
+    __table_args__ = (UniqueConstraint("snapshot_id", "file_id", "qualified_name", "kind", "start_line", "start_column"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    snapshot_id: Mapped[int] = mapped_column(ForeignKey("scan_snapshots.id"), index=True)
+    file_id: Mapped[int] = mapped_column(ForeignKey("files.id"), index=True)
+    parent_symbol_id: Mapped[int | None] = mapped_column(ForeignKey("symbols.id"), index=True)
+    kind: Mapped[str] = mapped_column(String(32), index=True)
+    name: Mapped[str] = mapped_column(String(255), index=True)
+    qualified_name: Mapped[str] = mapped_column(String(1024), index=True)
+    start_line: Mapped[int] = mapped_column(Integer)
+    start_column: Mapped[int] = mapped_column(Integer)
+    end_line: Mapped[int] = mapped_column(Integer)
+    end_column: Mapped[int] = mapped_column(Integer)
+    signature: Mapped[str | None] = mapped_column(Text)
+    warning: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    file: Mapped[RepositoryFile] = relationship(back_populates="symbols")
