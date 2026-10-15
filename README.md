@@ -129,3 +129,12 @@ The bounded READY-only content endpoint remains the source boundary. The File Hu
 ## Phase 4F quality pass
 
 The workspace quality pass adds visible focus states, compact responsive behavior, bounded source rendering, and consistent empty/error messaging. Command palette and repository controls remain keyboard reachable.
+
+## Milestone 5A Git repository intelligence
+
+The Dashboard includes a read-only Git status panel backed by
+`GET /api/v1/repositories/{repository_id}/git/status`. It reports the current
+branch or detached HEAD, commit metadata, working-tree counts, upstream
+ahead/behind state, remotes with credentials removed, local branches, tags, and
+shallow state. Git operations run against the registered repository root only;
+no Git actions, history, diffs, or hosting-provider integrations are included.

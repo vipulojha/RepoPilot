@@ -68,7 +68,7 @@ export interface Overview { snapshot_id:number; file_count:number; total_lines:n
 
 export interface GitStatusHead { sha: string; short_sha: string; message: string; author: string; committed_at: string | null }
 export interface GitStatusUpstream { name: string; ahead: number; behind: number }
-export interface GitStatusRemote { name: string; url: string; fetch_url?: string | null }
+export interface GitStatusRemote { name: string; fetch_url: string; push_url: string }
 export interface GitStatus {
   is_git_repository: boolean
   branch: string | null
@@ -78,6 +78,8 @@ export interface GitStatus {
   staged_count: number
   unstaged_count: number
   untracked_count: number
+  deleted_count: number
+  conflicted_count: number
   ahead: number
   behind: number
   upstream: GitStatusUpstream | null
