@@ -8,6 +8,8 @@ class GitFileStatus(BaseModel):
     worktree: str
     rename_from: str | None = None
     conflict: bool = False
+    additions: int = 0
+    deletions: int = 0
 
 
 class GitRemote(BaseModel):

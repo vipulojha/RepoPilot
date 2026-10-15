@@ -38,6 +38,29 @@ class GitService:
                                  deleted_count=sum("D" in (f.index, f.worktree) for f in files),
                                  conflicted_count=sum(f.conflict for f in files))
 
+    def current_changes(self, repository_path: str | Path) -> GitStatusResponse:
+        """Return current status plus bounded tracked-file diff statistics."""
+        result = self.status(repository_path)
+        root = self._validate_root(repository_path)
+        raw = self._run(root, ["diff", "HEAD", "--numstat", "-z", "-M", "--", "."], check=False)
+        records = raw.split("\0")
+        by_path = {item.path: item for item in result.files}
+        index = 0
+        while index < len(records):
+            parts = records[index].split("\t")
+            index += 1
+            if len(parts) != 3:
+                continue
+            additions, deletions, path = parts
+            if not path and index + 1 < len(records):
+                index += 2
+                path = records[index - 1]
+            item = by_path.get(path)
+            if item:
+                item.additions = 0 if additions == "-" else int(additions)
+                item.deletions = 0 if deletions == "-" else int(deletions)
+        return result
+
     def _validate_root(self, value: str | Path) -> Path:
         executable = shutil.which("git")
         if executable is None:
