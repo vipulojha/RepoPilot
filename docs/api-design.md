@@ -282,3 +282,7 @@ Phase 3C adds SQLite FTS5 search over READY snapshot file paths/names, symbols, 
 ## Phase 3D impact analysis
 
 Phase 3D adds evidence-based reverse dependency impact analysis. `POST /repositories/{repositoryId}/impact` accepts changed file IDs, optional READY snapshot, and bounded maximum depth. An edge A → B means A depends on B, so changing B traverses incoming internal edges to A. Depth 0 returns no affected files; depth 1 returns direct dependents; default maximum depth is 3. External and unresolved dependencies are excluded. Results merge overlapping roots, avoid cycles, preserve dependency paths and source evidence, and are ordered by depth/path.
+
+## Phase 3E dependency graph
+
+Phase 3E adds a bounded graph projection over existing internal dependency records. `GET /repositories/{repositoryId}/graph` accepts root file, snapshot, direction (`both`, `incoming`, `outgoing`), depth, and node/edge limits. A → B remains source A depends on target B. Only READY snapshot internal edges are shown; external/unresolved dependencies are excluded. Results include deterministic nodes, evidence-bearing edges, and truncation metadata.

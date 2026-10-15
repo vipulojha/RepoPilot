@@ -118,3 +118,7 @@ using the DTOs defined in `docs/api-design.md`.
 ## Phase 3D impact analysis
 
 Impact Analysis is now real API-backed data while retaining Signal Map styling. Changed roots and affected files are distinct; results include depth and dependency paths.
+
+## Phase 3E dependency graph
+
+Signal Map graph rendering now uses React Flow with real snapshot-scoped internal dependency edges, cyan directional edges, bounded neighborhoods, and a selected-root inspector.

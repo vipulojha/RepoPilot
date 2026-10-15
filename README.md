@@ -93,3 +93,5 @@ Phase 3B adds snapshot-scoped dependency intelligence. Supported imports from Py
 Phase 3C adds snapshot-isolated SQLite FTS5 search for files, paths, symbols, and source text. Search is available through the repository search API and the existing Search screen. Graph UI, impact analysis, hotspots, test relationships, and AI remain unimplemented.
 
 Phase 3D adds deterministic reverse-dependency impact analysis through a real API and the existing Impact Analysis screen. It uses READY snapshots and internal dependency evidence only. Graph visualization, hotspots, test relationship analysis, and AI remain unimplemented.
+
+Phase 3E adds the real bounded Dependency Graph screen using React Flow. It projects existing dependency records only, preserves A → B direction, supports incoming/outgoing/both direction, depth and limits, and keeps Signal Map styling.

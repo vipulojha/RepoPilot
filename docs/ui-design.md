@@ -301,3 +301,7 @@ like one investigation instead of separate demos. The final click opens
 ## Phase 3D impact analysis
 
 The Impact Analysis view calls `POST /api/v1/repositories/{id}/impact` with changed file IDs and a bounded depth. Results follow reverse internal dependencies, preserve evidence/path data, merge multiple roots, and exclude external/unresolved relationships.
+
+## Phase 3E dependency graph
+
+The graph screen is now API-backed and bounded. React Flow renders file nodes and dependency edges; backend projection owns snapshot, direction, traversal, and limits.
