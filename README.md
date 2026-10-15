@@ -103,3 +103,7 @@ Phase 3G adds deterministic static test relationships using existing test classi
 ## Phase 4B repository overview
 
 The Dashboard now reads one selected repository and latest READY snapshot through the aggregate overview API. Statistics come from existing files, symbols, internal dependencies, test flags, scan warnings, language counts, and hotspot intelligence.
+
+## Phase 4D cross-feature navigation
+
+The shell carries selected repository and file IDs across Search, Files, File Detail, Graph, Impact, Hotspots, and Tests. Entity actions open the File Intelligence Hub and preserve repository context; existing APIs remain the intelligence source.
