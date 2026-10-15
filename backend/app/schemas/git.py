@@ -59,6 +59,7 @@ class GitChangedFile(BaseModel):
     status: str
     additions: int = 0
     deletions: int = 0
+    file_id: int | None = None
 
 class GitCommit(BaseModel):
     sha: str

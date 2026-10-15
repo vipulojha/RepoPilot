@@ -17,7 +17,14 @@ def history(repository_id:int,page:int=Query(1,ge=1,le=10000),limit:int=Query(50
     r=get_repository(repository_id,db); return call(lambda:GitHistoryService().history(r.path,page,limit,branch))
 @router.get("/{repository_id}/git/commits/{sha}",response_model=GitCommit)
 def commit(repository_id:int,sha:str,db:Session=Depends(get_db)):
-    r=get_repository(repository_id,db); return call(lambda:GitHistoryService().commit(r.path,sha))
+    r=get_repository(repository_id,db)
+    result = call(lambda:GitHistoryService().commit(r.path,sha))
+    snap = latest_ready(db, repository_id)
+    if snap:
+        files = {f.relative_path: f.id for f in db.scalars(select(RepositoryFile).where(RepositoryFile.snapshot_id == snap.id)).all()}
+        for item in result.files:
+            item.file_id = files.get(item.path)
+    return result
 @router.get("/{repository_id}/git/files/{file_id}/history",response_model=GitFileHistoryResponse)
 def file_history(repository_id:int,file_id:int,page:int=Query(1,ge=1),limit:int=Query(50,ge=1,le=100),db:Session=Depends(get_db)):
     r=get_repository(repository_id,db); snap=latest_ready(db,repository_id)

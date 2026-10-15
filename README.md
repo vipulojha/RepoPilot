@@ -147,3 +147,11 @@ changes against the latest READY RepoPilot snapshot through
 statistics, affected reverse dependents, touched hotspots, associated tests,
 and deterministic explainable risk. It does not expose raw diff content or
 perform Git actions.
+
+## Milestone 5B Git history intelligence
+
+The History workspace and read-only Git API expose bounded commit history,
+commit details, file history, and commit comparison under
+`/api/v1/repositories/{repository_id}/git`. Historical facts remain separate
+from current READY-snapshot intelligence; changed files can link back to the
+File Intelligence Hub when a current snapshot identifies them.
