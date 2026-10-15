@@ -19,17 +19,37 @@ class GitHistoryService:
                          is_merge=len(parents)>1, changed_files=len(changed), additions=additions, deletions=deletions, files=changed)
 
     def _files(self, root, args):
-        raw=self.git._run(root,["diff-tree","--root","--no-commit-id","--numstat","-z","-M","-r",*args])
-        out=[]; i=0; parts=raw.split("\0")
-        while i+1 < len(parts) and parts[i]:
-            nums=parts[i].split("\t"); i+=1
-            if len(nums)<3: continue
-            path=parts[i]; i+=1; old=None; status="modified"
-            if path.startswith("\t"):
-                old=path[1:]; path=parts[i]; i+=1; status="renamed"
-            if nums[0]=="-": add=delete=0
-            else: add,delete=int(nums[0]),int(nums[1])
-            out.append(GitChangedFile(path=path,old_path=old,status=status,additions=add,deletions=delete))
+        is_commit = len(args) == 2 and args[1] == "-m"
+        target = [args[0]] if is_commit else list(args)
+        command = ["diff-tree", "--root", "--no-commit-id", "--name-status", "-z", "-M", "-r", *target] if is_commit else ["diff", "--name-status", "-z", "-M", *target]
+        status_raw = self.git._run(root, command)
+        records = status_raw.split("\0")
+        out=[]; i=0
+        while i < len(records) and records[i]:
+            status_record = records[i]; i += 1
+            code, _, score = status_record.partition("\t")
+            status = {"A":"added", "D":"deleted", "M":"modified", "C":"copied", "R":"renamed"}.get(code[:1], "modified")
+            old_path = None
+            path = records[i] if i < len(records) else ""; i += 1
+            if status in {"renamed", "copied"}:
+                old_path, path = path, records[i] if i < len(records) else ""; i += 1
+            out.append(GitChangedFile(path=path, old_path=old_path, status=status))
+        stats_command = ["diff-tree", "--root", "--no-commit-id", "--numstat", "-z", "-M", "-r", *target] if is_commit else ["diff", "--numstat", "-z", "-M", *target]
+        stats = self.git._run(root, stats_command).split("\0")
+        by_path = {item.path: item for item in out}
+        i = 0
+        while i < len(stats):
+            record = stats[i]; i += 1
+            parts = record.split("\t")
+            if len(parts) != 3: continue
+            additions, deletions, path = parts
+            if not path and i + 1 < len(stats):
+                i += 2
+                path = stats[i - 1]
+            item = by_path.get(path)
+            if item:
+                item.additions = 0 if additions == "-" else int(additions)
+                item.deletions = 0 if deletions == "-" else int(deletions)
         return out[:1000]
 
     def history(self, path, page=1, limit=50, ref=None):
