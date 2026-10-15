@@ -111,3 +111,7 @@ The shell carries selected repository and file IDs across Search, Files, File De
 ## Phase 4E source viewer
 
 The bounded READY-only content endpoint remains the source boundary. The File Hub now renders stable line numbers and keyboard-readable source rows, while binary/skipped/unreadable states remain explicit. No editor or repository code execution is introduced.
+
+## Phase 4F quality pass
+
+The workspace quality pass adds visible focus states, compact responsive behavior, bounded source rendering, and consistent empty/error messaging. Command palette and repository controls remain keyboard reachable.
