@@ -18,3 +18,15 @@ RepoPilot will be a self-hosted application for exploring repositories, understa
 - Docker-based deployment
 
 The application will be Dockerized and designed to run on a clean Linux environment.
+
+## Architecture
+
+The Phase 1 design is documented in:
+
+- [Architecture](docs/architecture.md)
+- [REST API design](docs/api-design.md)
+- [UI/UX design](docs/ui-design.md)
+
+Implementation has not started. The planned stack is a React + TypeScript +
+Vite frontend, a Python 3.12 + FastAPI backend, Tree-sitter analysis, SQLite
+with FTS5 search, and a single Docker deployment.
