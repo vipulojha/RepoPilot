@@ -107,3 +107,7 @@ The Dashboard now reads one selected repository and latest READY snapshot throug
 ## Phase 4D cross-feature navigation
 
 The shell carries selected repository and file IDs across Search, Files, File Detail, Graph, Impact, Hotspots, and Tests. Entity actions open the File Intelligence Hub and preserve repository context; existing APIs remain the intelligence source.
+
+## Phase 4E source viewer
+
+The bounded READY-only content endpoint remains the source boundary. The File Hub now renders stable line numbers and keyboard-readable source rows, while binary/skipped/unreadable states remain explicit. No editor or repository code execution is introduced.

@@ -134,3 +134,7 @@ The Tests view uses compact Signal Map evidence rows, distinguishing strong dire
 ## Phase 4C file intelligence hub
 
 Signal Map now connects selected files to bounded source content, symbols, file signals, impact, and graph actions.
+
+## Phase 4E source viewer
+
+The source surface uses line-numbered DM Mono rows, restrained code styling, and explicit unavailable states.
