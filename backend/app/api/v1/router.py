@@ -35,3 +35,11 @@ def get_repository(repository_id: int, db: Session = Depends(get_db)) -> Reposit
     if repository is None:
         raise HTTPException(status_code=404, detail="Repository not found")
     return repository
+
+@router.delete("/{repository_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_repository(repository_id: int, db: Session = Depends(get_db)) -> None:
+    repository = db.get(Repository, repository_id)
+    if repository is None:
+        raise HTTPException(status_code=404, detail="Repository not found")
+    db.delete(repository)
+    db.commit()

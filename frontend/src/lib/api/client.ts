@@ -81,6 +81,7 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(payload),
   }),
+  deleteRepository: (repositoryId:number) => request<void>(`/repositories/${repositoryId}`, { method:'DELETE' }),
   scans: (repositoryId: number) => request<Scan[]>(`/repositories/${repositoryId}/scans`),
   latestScan: (repositoryId: number) => request<Scan>(`/repositories/${repositoryId}/scans/latest`),
   startScan: (repositoryId: number) => request<Scan>(`/repositories/${repositoryId}/scans`, { method: 'POST', body: JSON.stringify({ force: false }) }),
