@@ -92,7 +92,7 @@ export interface GitCommitDetail extends GitCommit {}
 export interface GitFileHistory { file_id:number; path:string; commits:GitCommit[]; next_cursor:string|null; has_more:boolean; truncated:boolean }
 export interface GitCompare { base:string; head:string; files:{path:string;status:string;additions:number;deletions:number;file_id:number|null}[]; additions:number; deletions:number; truncated:boolean }
 export interface ChangesResponse { state:string; repository_id:number; snapshot_id:number|null; git:GitStatus|null; diff:{files:number;additions:number;deletions:number}; changed_files:{file_id:number|null;path:string;status:string;git:unknown;unresolved:boolean}[]; affected_files:ImpactItem[]; hotspots:Hotspot[]; tests:TestRelationship[]; risk:{score:number;level:string;reasons:string[];thresholds:Record<string,number>}; truncated:boolean }
-export type GitAction = 'stage'|'unstage'|'commit'|'branch_create'|'branch_switch'|'fetch'|'push'|'pull'|'revert'
+export type GitAction = 'stage'|'unstage'|'commit'|'branch_create'|'branch_switch'|'fetch'|'push'|'pull'|'revert'|'stash_create'|'stash_list'|'stash_apply'|'stash_pop'|'stash_drop'
 export type GitActionPayload = { action:GitAction; paths?:string[]; message?:string; name?:string; start_point?:string; confirm_dirty?:boolean; remote?:string; branch?:string; commit?:string; confirm?:boolean }
 export interface GitActionReceipt { action:GitAction; status:'succeeded'|'rejected'|'conflict'|'failed'; message:string; recovery_guidance?:string|null; git:GitStatus|null; intelligence_stale:boolean; stdout_summary?:string|null }
 
