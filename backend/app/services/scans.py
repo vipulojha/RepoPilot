@@ -11,6 +11,7 @@ from app.services.scanner.scanner import ScanLimits, discover_files, metadata_fo
 from app.services.parser.extractor import extract_symbols
 from app.services.parser.service import parse_source
 from app.config import get_settings
+from app.services.search import index_document
 
 
 def create_scan_snapshot(db: Session, repository_id: int) -> ScanSnapshot:
@@ -48,6 +49,8 @@ def run_scan(db: Session, snapshot_id: int, limits: ScanLimits | None = None) ->
                 db.add(file_row)
                 db.flush()
                 file_rows[metadata.relative_path] = file_row
+                if metadata.line_count is not None and not metadata.is_binary and not metadata.warning:
+                    index_document(db, snapshot.id, "file", file_row.id, metadata.relative_path, metadata.name, item.path.read_text(encoding="utf-8", errors="replace"))
                 if metadata.line_count is not None and not metadata.is_binary and metadata.warning is None:
                     source = item.path.read_bytes()
                     parsed = parse_source(metadata.language, source, metadata.relative_path, get_settings().parse_max_file_bytes)
@@ -59,6 +62,7 @@ def run_scan(db: Session, snapshot_id: int, limits: ScanLimits | None = None) ->
                             db.add(row)
                             db.flush()
                             created_symbols[symbol.qualified_name] = row
+                            index_document(db, snapshot.id, "symbol", file_row.id, metadata.relative_path, symbol.qualified_name, symbol.signature or symbol.name, row.id)
                         for dependency in extract_dependencies(parsed.tree.root_node, source, metadata.language):
                             resolution, target_path = resolve_dependency(dependency, metadata.relative_path, metadata.language, path_map)
                             target_id = file_rows.get(target_path).id if target_path and target_path in file_rows else None

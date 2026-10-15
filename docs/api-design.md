@@ -272,3 +272,9 @@ Routes:
 - `GET /repositories/{repositoryId}/dependencies/{dependencyId}` returns relationship evidence.
 
 Only READY snapshots are exposed. JavaScript/TypeScript relative paths support common extensions and index modules. Python and Java module mapping is deterministic and intentionally does not attempt build aliases or runtime reflection. Search, graph UI, impact analysis, hotspots, and AI remain future work.
+
+## Phase 3C search
+
+Phase 3C adds SQLite FTS5 search over READY snapshot file paths/names, symbols, qualified names, and analyzable source text. Search results distinguish `symbol`, `file`, and `code` types, include bounded snippets, and use deterministic ranking. Queries are treated as plain text and FTS operators are not exposed.
+
+`GET /api/v1/repositories/{repositoryId}/search` accepts `q`, `snapshot_id`, `scope`, `language`, `limit`, and `cursor`. Binary, oversized, skipped, and unreadable source is not indexed as content. Search indexing completes before a snapshot becomes READY; previous READY indexes remain available while a new snapshot is built.

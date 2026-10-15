@@ -23,6 +23,12 @@ def init_db() -> None:
     from app.db import models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
+    with engine.begin() as connection:
+        connection.exec_driver_sql("""CREATE VIRTUAL TABLE IF NOT EXISTS search_documents USING fts5(
+            snapshot_id UNINDEXED, entity_type UNINDEXED, file_id UNINDEXED,
+            symbol_id UNINDEXED, path, name, content,
+            tokenize='unicode61 remove_diacritics 1'
+        )""")
 
 
 def get_db() -> Generator[Session, None, None]:
