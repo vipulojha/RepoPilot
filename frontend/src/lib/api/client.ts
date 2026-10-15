@@ -63,6 +63,7 @@ export interface ImpactItem { file_id: number; path: string; depth: number; chan
 export interface GraphNode { id: number; path: string; name: string; language: string; classification: string; is_test: boolean; incoming: number; outgoing: number }
 export interface GraphEdge { id: number; source: number; target: number; kind: string; imported_name: string; source_line: number; source_column: number; evidence: string }
 export interface Hotspot { file_id:number; path:string; name:string; language:string; is_test:boolean; score:number; rank:number; metrics:{lines:number;symbols:number;fan_in:number;fan_out:number;impact_reach:number}; reasons:string[] }
+export interface TestRelationship { test_file_id:number; test_path:string; source_file_id:number; source_path:string; kind:string; evidence_level:string; evidence:string }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -90,4 +91,6 @@ export const api = {
   impact: (repositoryId: number, changedFileIds: number[], maxDepth = 3) => request<{ snapshot_id: number; changed_roots: { file_id: number; path: string }[]; affected_files: ImpactItem[]; counts: Record<string, number> }>(`/repositories/${repositoryId}/impact`, { method: 'POST', body: JSON.stringify({ changed_file_ids: changedFileIds, max_depth: maxDepth }) }),
   graph: (repositoryId: number, rootFileId: number, direction = 'both', depth = 2) => request<{ snapshot_id: number; root_file_id: number; nodes: GraphNode[]; edges: GraphEdge[]; node_count: number; edge_count: number; truncated: boolean; direction: string; depth: number }>(`/repositories/${repositoryId}/graph?root_file_id=${rootFileId}&direction=${direction}&depth=${depth}`),
   hotspots: (repositoryId:number) => request<{snapshot_id:number;items:Hotspot[];next_cursor:number|null;has_more:boolean;total:number}>(`/repositories/${repositoryId}/hotspots`),
+  sourceTests: (repositoryId:number,fileId:number) => request<{snapshot_id:number;items:TestRelationship[]}>(`/repositories/${repositoryId}/files/${fileId}/tests`),
+  testSources: (repositoryId:number,fileId:number) => request<{snapshot_id:number;items:TestRelationship[]}>(`/repositories/${repositoryId}/files/${fileId}/tested-sources`),
 }

@@ -97,3 +97,5 @@ Phase 3D adds deterministic reverse-dependency impact analysis through a real AP
 Phase 3E adds the real bounded Dependency Graph screen using React Flow. It projects existing dependency records only, preserves A → B direction, supports incoming/outgoing/both direction, depth and limits, and keeps Signal Map styling.
 
 Phase 3F adds deterministic, explainable repository hotspots based on static file, symbol, dependency, and bounded impact signals. Historical Git churn, test relationships, and AI are not used.
+
+Phase 3G adds deterministic static test relationships using existing test classification and dependency records. The Tests screen shows evidence level and explicitly does not execute tests or report runtime coverage.

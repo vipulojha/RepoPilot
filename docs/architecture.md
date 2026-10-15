@@ -515,3 +515,7 @@ Git diff-aware impact analysis, more language grammars, configuration-aware
 alias resolution, LSP adapters, incremental rescans, saved architecture views,
 exportable reports, team permissions, optional authentication, and an optional
 AI explanation layer can follow once deterministic core analysis is reliable.
+
+## Phase 3G test relationship intelligence
+
+Test relationships are derived from READY snapshot files and dependencies. Direct internal test imports are strong evidence; deterministic filename/path matches are heuristic associations. This phase does not execute tests or calculate runtime coverage.

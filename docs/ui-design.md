@@ -309,3 +309,7 @@ The graph screen is now API-backed and bounded. React Flow renders file nodes an
 ## Phase 3F hotspots
 
 Hotspots now use real API data and show score, fan-in, fan-out, language, test status, and an explanation. Scores are static structural signals; historical Git churn is not currently used.
+
+## Phase 3G test relationships
+
+Tests now shows real static associations with strong direct-dependency or heuristic naming evidence. Runtime coverage and test execution are intentionally absent.

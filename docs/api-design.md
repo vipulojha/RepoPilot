@@ -292,3 +292,7 @@ Phase 3E adds a bounded graph projection over existing internal dependency recor
 Hotspots use static repository signals only: lines, symbol count, internal fan-in, internal fan-out, and bounded reverse impact reach. Each signal is min-max normalized across eligible TEXT files; tied signals receive 0.5. Score = 100 × (0.20 lines + 0.20 symbols + 0.25 fan-in + 0.15 fan-out + 0.20 impact reach). Scores are clamped to 0–100 and rounded to two decimals. Ranking ties break by fan-in, impact reach, path, and file ID. Historical Git churn is not currently used.
 
 `GET /repositories/{repositoryId}/hotspots` returns READY-snapshot ranked files, metrics, score, and reasons. Binary/skipped files are excluded; tests are included by default with an explicit indicator.
+
+## Phase 3G test relationship intelligence
+
+Phase 3G derives static associations between existing classified test files and source files. `GET /repositories/{repositoryId}/files/{fileId}/tests` returns tests associated with a source file; `GET /repositories/{repositoryId}/files/{fileId}/tested-sources` returns sources associated with a test file. Direct internal dependency evidence is `direct_dependency` / strong. Exact deterministic filename/path matches are `naming_convention` / heuristic. External and unresolved dependencies are ignored. No runtime execution, pass/fail, or coverage percentage is reported.

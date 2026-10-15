@@ -126,3 +126,7 @@ Signal Map graph rendering now uses React Flow with real snapshot-scoped interna
 ## Phase 3F hotspots
 
 The Hotspots screen uses Signal Map tables with real deterministic scores and compact reason indicators. No historical activity or fabricated risk metric is shown.
+
+## Phase 3G test relationships
+
+The Tests view uses compact Signal Map evidence rows, distinguishing strong direct dependencies from heuristic naming associations.
