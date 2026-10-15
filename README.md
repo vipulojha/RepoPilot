@@ -159,6 +159,27 @@ Merge, cherry-pick, reset, rebase, stash, and hosting-provider integrations are
 deferred. Revert/pull/branch operations may require a clean tree and conflicts
 are left visible for manual recovery.
 
+## Milestones 5E and 5F
+
+Advanced Git support adds confirmed stash create/list/apply/pop/drop operations
+through the same Git action API. Merge, cherry-pick, reset, rebase, stash
+automation, and force-push remain deferred.
+
+The backend also installs a local `repopilot` CLI when the project is installed:
+
+```bash
+cd backend
+uv sync --dev
+uv run repopilot --help
+uv run repopilot status --json /path/to/repository
+uv run repopilot history --limit 20 /path/to/repository
+uv run repopilot changes /path/to/repository
+```
+
+CLI output is readable by default and JSON with `--json`; errors go to stderr
+with nonzero exit codes. `status`, `history`, `changes`, `files`, `search`, and
+`git status` are available without a READY snapshot where Git data permits.
+
 ## Milestone 5B Git history intelligence
 
 The History workspace and read-only Git API expose bounded commit history,

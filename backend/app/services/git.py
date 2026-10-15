@@ -96,6 +96,20 @@ class GitService:
                 elif action == "revert":
                     if not kwargs.get("confirm"): raise GitServiceError("Revert confirmation is required")
                     commit = self._commit(root, kwargs.get("commit")); args = ["revert", "--no-edit", commit]
+                elif action == "stash_create":
+                    if before.clean: raise GitServiceError("Working tree is clean; nothing to stash")
+                    message = (kwargs.get("message") or "RepoPilot stash").strip()[:200]
+                    args = ["stash", "push", "--include-untracked", "--message", message]
+                elif action == "stash_list":
+                    args = ["stash", "list", "--format=%gd%x00%gs", "--max-count=100"]
+                elif action in {"stash_apply", "stash_pop", "stash_drop"}:
+                    stash = kwargs.get("stash") or ""
+                    if not re.fullmatch(r"stash@\{[0-9]{1,3}\}", stash): raise GitServiceError("Invalid stash reference")
+                    entries = self._run(root, ["stash", "list", "--format=%gd", "--max-count=100"], check=False).splitlines()
+                    if stash not in entries: raise GitServiceError("Stash not found")
+                    if action in {"stash_apply", "stash_pop"} and not before.clean: raise GitServiceError("Working tree is dirty; stash application requires a clean tree")
+                    if action in {"stash_pop", "stash_drop"} and not kwargs.get("confirm"): raise GitServiceError("Confirmation is required")
+                    args = ["stash", action.split("_", 1)[1], stash]
                 elif action in {"fetch", "push", "pull"}:
                     remote = self._remote(root, kwargs.get("remote")); branch = kwargs.get("branch")
                     if action in {"push", "pull"} and branch: self._branch(branch)

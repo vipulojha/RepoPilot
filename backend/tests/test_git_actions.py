@@ -72,3 +72,26 @@ def test_commit_requires_explicit_selected_scope(action_repo):
     result = GitService().action(action_repo, "commit", message="missing scope")
     assert result["status"] == "failed"
     assert "paths" in result["message"].lower()
+
+
+def test_stash_create_list_apply_pop_and_drop(action_repo):
+    (action_repo / "one.txt").write_text("stashed\n")
+    service = GitService()
+    created = service.action(action_repo, "stash_create", message="work in progress")
+    assert created["status"] == "succeeded"
+    listed = service.action(action_repo, "stash_list")
+    assert listed["status"] == "succeeded"
+    assert "stash@{0}" in listed["stdout_summary"]
+    assert service.status(action_repo).clean is True
+    assert service.action(action_repo, "stash_apply", stash="stash@{0}")["status"] == "succeeded"
+    assert (action_repo / "one.txt").read_text() == "stashed\n"
+    assert service.action(action_repo, "stash_create", message="again")["status"] == "succeeded"
+    assert service.action(action_repo, "stash_pop", stash="stash@{0}")["status"] == "failed"
+    assert service.action(action_repo, "stash_pop", stash="stash@{0}", confirm=True)["status"] == "succeeded"
+    assert service.action(action_repo, "stash_drop", stash="stash@{0}")["status"] == "failed"
+
+
+def test_invalid_stash_reference_is_rejected(action_repo):
+    result = GitService().action(action_repo, "stash_apply", stash="stash@{999}")
+    assert result["status"] == "failed"
+    assert "stash" in result["message"].lower()

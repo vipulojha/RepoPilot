@@ -57,7 +57,7 @@ class GitStatusResponse(BaseModel):
     conflicted_count: int = 0
 
 class GitActionRequest(BaseModel):
-    action: Literal["stage", "unstage", "commit", "branch_create", "branch_switch", "fetch", "push", "pull", "revert"]
+    action: Literal["stage", "unstage", "commit", "branch_create", "branch_switch", "fetch", "push", "pull", "revert", "stash_create", "stash_list", "stash_apply", "stash_pop", "stash_drop"]
     paths: list[str] = Field(default_factory=list)
     message: str | None = Field(default=None, max_length=5000)
     name: str | None = Field(default=None, max_length=255)
