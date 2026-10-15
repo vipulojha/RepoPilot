@@ -260,3 +260,15 @@ Implemented routes:
 - `GET /repositories/{repositoryId}/symbols/{symbolId}` returns one symbol.
 
 Import/dependency extraction, FTS5 search, graph analysis, impact analysis, hotspots, and AI remain outside Phase 3A.
+
+## Phase 3B dependency intelligence
+
+Phase 3B extracts syntax-level imports for Python, JavaScript/JSX, TypeScript/TSX, and Java, then resolves deterministic repository relationships. Each dependency is snapshot-scoped and classified as `internal`, `external`, or `unresolved`; source line, column, imported name, and evidence are retained.
+
+Routes:
+
+- `GET /repositories/{repositoryId}/dependencies/files/{fileId}/forward` lists files the source file depends on.
+- `GET /repositories/{repositoryId}/dependencies/files/{fileId}/reverse` lists files that depend on the target file.
+- `GET /repositories/{repositoryId}/dependencies/{dependencyId}` returns relationship evidence.
+
+Only READY snapshots are exposed. JavaScript/TypeScript relative paths support common extensions and index modules. Python and Java module mapping is deterministic and intentionally does not attempt build aliases or runtime reflection. Search, graph UI, impact analysis, hotspots, and AI remain future work.

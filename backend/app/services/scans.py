@@ -4,7 +4,8 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.models import Repository, RepositoryFile, ScanSnapshot, Symbol
+from app.db.models import Dependency, Repository, RepositoryFile, ScanSnapshot, Symbol
+from app.services.dependencies import DependencyData, extract_dependencies, resolve_dependency
 from app.services.scanner.ignore import build_ignore_policy
 from app.services.scanner.scanner import ScanLimits, discover_files, metadata_for_file, resolve_repository_root
 from app.services.parser.extractor import extract_symbols
@@ -36,6 +37,8 @@ def run_scan(db: Session, snapshot_id: int, limits: ScanLimits | None = None) ->
         db.commit()
         policy = build_ignore_policy(root)
         discovered = list(discover_files(root, policy, limits))
+        path_map = {item.relative_path for item in discovered}
+        file_rows: dict[str, RepositoryFile] = {}
         snapshot.discovered_files = len(discovered)
         db.commit()
         for item in discovered:
@@ -44,6 +47,7 @@ def run_scan(db: Session, snapshot_id: int, limits: ScanLimits | None = None) ->
                 file_row = RepositoryFile(snapshot_id=snapshot.id, **metadata.__dict__, classification="SKIPPED" if metadata.warning and metadata.line_count is None and not metadata.is_binary else "BINARY" if metadata.is_binary else "TEXT")
                 db.add(file_row)
                 db.flush()
+                file_rows[metadata.relative_path] = file_row
                 if metadata.line_count is not None and not metadata.is_binary and metadata.warning is None:
                     source = item.path.read_bytes()
                     parsed = parse_source(metadata.language, source, metadata.relative_path, get_settings().parse_max_file_bytes)
@@ -55,6 +59,10 @@ def run_scan(db: Session, snapshot_id: int, limits: ScanLimits | None = None) ->
                             db.add(row)
                             db.flush()
                             created_symbols[symbol.qualified_name] = row
+                        for dependency in extract_dependencies(parsed.tree.root_node, source, metadata.language):
+                            resolution, target_path = resolve_dependency(dependency, metadata.relative_path, metadata.language, path_map)
+                            target_id = file_rows.get(target_path).id if target_path and target_path in file_rows else None
+                            db.add(Dependency(snapshot_id=snapshot.id, source_file_id=file_row.id, target_file_id=target_id, imported_name=dependency.imported_name, kind=dependency.kind, resolution_status=resolution, source_line=dependency.line, source_column=dependency.column, evidence=dependency.evidence))
                 snapshot.processed_files += 1
                 if metadata.warning:
                     warnings.append(f"{metadata.relative_path}: {metadata.warning}")
@@ -62,6 +70,12 @@ def run_scan(db: Session, snapshot_id: int, limits: ScanLimits | None = None) ->
                 warnings.append(f"{item.relative_path}: {exc}")
             if snapshot.processed_files % 100 == 0:
                 db.commit()
+        for dependency in db.scalars(select(Dependency).where(Dependency.snapshot_id == snapshot.id)).all():
+            if dependency.resolution_status == "internal" and dependency.target_file_id is None:
+                source_file = next((row for row in file_rows.values() if row.id == dependency.source_file_id), None)
+                if source_file:
+                    _, target_path = resolve_dependency(DependencyData(dependency.imported_name, dependency.kind, dependency.source_line, dependency.source_column, dependency.evidence), source_file.relative_path, source_file.language, path_map)
+                    if target_path in file_rows: dependency.target_file_id = file_rows[target_path].id
         snapshot.status = "finalizing"
         db.flush()
         persisted_files = db.scalars(select(RepositoryFile).where(RepositoryFile.snapshot_id == snapshot.id)).all()

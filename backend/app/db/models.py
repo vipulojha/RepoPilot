@@ -89,3 +89,19 @@ class Symbol(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     file: Mapped[RepositoryFile] = relationship(back_populates="symbols")
+
+
+class Dependency(Base):
+    __tablename__ = "dependencies"
+    __table_args__ = (UniqueConstraint("snapshot_id", "source_file_id", "target_file_id", "imported_name", "kind", "source_line", "source_column"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    snapshot_id: Mapped[int] = mapped_column(ForeignKey("scan_snapshots.id"), index=True)
+    source_file_id: Mapped[int] = mapped_column(ForeignKey("files.id"), index=True)
+    target_file_id: Mapped[int | None] = mapped_column(ForeignKey("files.id"), index=True)
+    imported_name: Mapped[str] = mapped_column(String(1024), index=True)
+    kind: Mapped[str] = mapped_column(String(32), default="import", index=True)
+    resolution_status: Mapped[str] = mapped_column(String(16), index=True)
+    source_line: Mapped[int] = mapped_column(Integer)
+    source_column: Mapped[int] = mapped_column(Integer)
+    evidence: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

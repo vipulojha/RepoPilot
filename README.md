@@ -87,3 +87,5 @@ Register a repository through `POST /api/v1/repositories`, then start a scan wit
 The scanner excludes `.git/`, common dependency/build/cache directories, and repository `.gitignore` entries. Binary and oversized files are recorded with metadata without being decoded as source. A failed scan remains isolated from the previous READY snapshot.
 
 Phase 3A adds syntax-only Tree-sitter symbol extraction for Python, JavaScript/JSX, TypeScript/TSX, and Java. Symbols are persisted per READY snapshot with source locations and parent relationships. Imports, dependency analysis, search indexing, graphs, and impact analysis are not implemented.
+
+Phase 3B adds snapshot-scoped dependency intelligence. Supported imports from Python, JavaScript/JSX, TypeScript/TSX, and Java are classified as internal, external, or unresolved and exposed through forward/reverse dependency APIs. Search, graph UI, impact analysis, hotspots, test relationships, and AI are not implemented.
