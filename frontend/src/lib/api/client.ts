@@ -136,7 +136,7 @@ export const api = {
   sourceTests: (repositoryId:number,fileId:number) => request<{snapshot_id:number;items:TestRelationship[]}>(`/repositories/${repositoryId}/files/${fileId}/tests`),
   testSources: (repositoryId:number,fileId:number) => request<{snapshot_id:number;items:TestRelationship[]}>(`/repositories/${repositoryId}/files/${fileId}/tested-sources`),
   overview: (repositoryId:number) => request<Overview>(`/repositories/${repositoryId}/overview`),
-  gitStatus: (repositoryId:number) => request<GitStatus>(`/repositories/${repositoryId}/git-status`),
+  gitStatus: (repositoryId:number) => request<GitStatus>(`/repositories/${repositoryId}/git/status`),
   git: {
     history: (repositoryId:number, page=1, limit=20) => request<GitHistory>(`/repositories/${repositoryId}/git/history?page=${page}&limit=${limit}`),
     commit: (repositoryId:number, sha:string) => request<GitCommitDetail>(`/repositories/${repositoryId}/git/commits/${encodeURIComponent(sha)}`),

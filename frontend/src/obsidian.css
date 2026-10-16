@@ -163,6 +163,12 @@ textarea,
 
 .change-grid,
 .git-actions-grid { align-items: start; }
+.side-callout { display: flex; align-items: flex-start; gap: 10px; padding: 15px 14px; color: var(--obsidian-cyan); }
+.side-callout > div { min-width: 0; flex: 1; }
+.side-callout b,
+.side-callout span { display: block; }
+.side-callout b { color: var(--obsidian-ink); font-size: 11px; line-height: 1.35; }
+.side-callout span { margin-top: 6px; color: var(--obsidian-muted); font-size: 10px; line-height: 1.45; }
 .reason-list li { border-bottom-color: var(--obsidian-border); }
 .action-receipt { border-color: var(--obsidian-border-focus); background: var(--obsidian-panel); }
 .action-receipt.succeeded { border-color: var(--obsidian-mint); }
