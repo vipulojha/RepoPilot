@@ -10,7 +10,7 @@ import {
   FlaskConical,
 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
-import { REPO_SUMMARY } from '../data/mockData';
+import { useHandoffDataContext } from '../lib/handoffData';
 import { NavigationPage } from '../components/layout/AppSidebar';
 
 export interface CockpitViewProps {
@@ -18,6 +18,9 @@ export interface CockpitViewProps {
 }
 
 export const CockpitView: React.FC<CockpitViewProps> = ({ onNavigate }) => {
+  const handoffData = useHandoffDataContext();
+  const overview = handoffData?.overview;
+  const REPO_SUMMARY = { snapshot: overview ? `Snapshot ${overview.snapshot_id}` : 'No snapshot', snapshotStatus: overview ? 'READY' : 'EMPTY', snapshotDetail: overview ? 'API snapshot' : 'Connect a repository', metrics: { filesIndexed: overview?.file_count ?? 0, linesSLOC: overview?.total_lines ?? 0, symbolsParsed: overview?.symbol_count ?? 0, dependenciesResolved: overview?.dependency_count ?? 0, testsClassified: overview?.test_file_count ?? 0 } };
   return (
     <div className="p-6 space-y-5 max-w-[1500px] mx-auto select-none overflow-y-auto">
       {/* View Header */}

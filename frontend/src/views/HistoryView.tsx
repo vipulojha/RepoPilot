@@ -9,10 +9,13 @@ import {
   Layers,
   ArrowRight,
 } from 'lucide-react';
-import { HISTORY_COMMITS, CommitItem } from '../data/mockData';
+import { useHandoffDataContext } from '../lib/handoffData';
+import type { CommitItem } from '../data/mockData';
 
 export const HistoryView: React.FC = () => {
-  const [selectedCommit, setSelectedCommit] = useState<CommitItem>(HISTORY_COMMITS[2]);
+  const handoffData = useHandoffDataContext();
+  const HISTORY_COMMITS: CommitItem[] = (handoffData?.history?.items ?? []).map(commit => ({ hash: commit.sha, shortHash: commit.short_sha, message: commit.subject, author: commit.author, timestamp: commit.committed_at, filesChanged: commit.changed_files, additions: commit.additions, deletions: commit.deletions }));
+  const [selectedCommit, setSelectedCommit] = useState<CommitItem | null>(null);
 
   return (
     <div className="flex flex-col h-full w-full bg-[#0B0E14] select-none overflow-hidden font-mono text-[#DEE2F3]">
@@ -43,7 +46,7 @@ export const HistoryView: React.FC = () => {
           <div className="absolute left-[39px] top-8 bottom-8 w-[2px] bg-[#00F2FE]/40" />
 
           {HISTORY_COMMITS.map((commit, idx) => {
-            const isSelected = selectedCommit.shortHash === commit.shortHash;
+             const isSelected = selectedCommit?.shortHash === commit.shortHash;
             return (
               <div
                 key={`${commit.shortHash}-${idx}`}
@@ -122,7 +125,7 @@ export const HistoryView: React.FC = () => {
         {/* Right: Commit Detail Drawer (matches screenshot) */}
         <div className="w-[360px] border-l border-[#1E2638] bg-[#0E131F] p-4 flex flex-col shrink-0 overflow-y-auto">
           <div className="font-headline font-bold text-[14px] text-[#F1F5F9] pb-3 border-b border-[#1E2638]">
-            Commit Detail - {selectedCommit.shortHash}
+             Commit Detail - {selectedCommit?.shortHash ?? 'Select a commit'}
           </div>
 
           {/* High-Impact Warning Card */}

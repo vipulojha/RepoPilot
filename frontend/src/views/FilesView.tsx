@@ -13,8 +13,10 @@ import {
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { SOURCE_FILES, SourceFileItem } from '../data/mockData';
+import { useHandoffDataContext } from '../lib/handoffData';
 
-export const FilesView: React.FC = () => {
+export const FilesView: React.FC<{ onSelectFile?: (id: number) => void }> = ({ onSelectFile }) => {
+  const handoffData = useHandoffDataContext();
   const [filterQuery, setFilterQuery] = useState('');
   const [sortBy, setSortBy] = useState<'path' | 'lines' | 'risk'>('path');
   const [selectedFile, setSelectedFile] = useState<string>('src/api/router.ts');
@@ -29,7 +31,8 @@ export const FilesView: React.FC = () => {
     setOpenFolders((prev) => ({ ...prev, [folder]: !prev[folder] }));
   };
 
-  const filteredFiles = SOURCE_FILES.filter(
+  const sourceFiles: SourceFileItem[] = handoffData?.files.length ? handoffData.files.map(file => ({ id: String(file.id), path: file.relative_path, name: file.name, language: (file.language || file.extension || 'Markdown') as SourceFileItem['language'], languageColor: '#00F2FE', fileSize: `${file.size_bytes ?? 0} B`, lines: file.line_count ?? 0, fanIn: null, impactRisk: 'Low' })) : SOURCE_FILES;
+  const filteredFiles = sourceFiles.filter(
     (f) =>
       f.path.toLowerCase().includes(filterQuery.toLowerCase()) ||
       f.language.toLowerCase().includes(filterQuery.toLowerCase())
@@ -235,7 +238,7 @@ export const FilesView: React.FC = () => {
                 return (
                   <tr
                     key={file.id}
-                    onClick={() => setSelectedFile(file.path)}
+                onClick={() => { setSelectedFile(file.path); const id = Number(file.id); if (onSelectFile && Number.isFinite(id)) onSelectFile(id); }}
                     className={`hover:bg-[#182030] cursor-pointer transition-colors ${
                       isSelected ? 'bg-[#182030]/80' : ''
                     }`}

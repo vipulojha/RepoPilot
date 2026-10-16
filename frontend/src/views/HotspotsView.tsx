@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { Sparkles, ArrowRight, Activity, TrendingUp } from 'lucide-react';
 import { Button } from '../components/ui/Button';
-import { HOTSPOTS_DATA } from '../data/mockData';
+import { useHandoffDataContext } from '../lib/handoffData';
 
 export interface HotspotsViewProps {
   onAnalyzeImpact?: (path: string) => void;
 }
 
 export const HotspotsView: React.FC<HotspotsViewProps> = ({ onAnalyzeImpact }) => {
+  const handoffData = useHandoffDataContext();
+  const HOTSPOTS_DATA = (handoffData?.hotspots ?? []).map((item, index) => ({ rank: `#${String(index + 1).padStart(2, '0')}`, path: item.path, lines: item.metrics?.lines ?? 0, callers: item.metrics?.fan_in ?? 0, deps: item.metrics?.fan_out ?? 0, score: item.score, signal: item.reasons?.join(', ') ?? '' }));
   const [selectedHotspot, setSelectedHotspot] = useState<string>('#04');
 
   return (

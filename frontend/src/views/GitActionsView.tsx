@@ -12,16 +12,17 @@ import {
   Terminal,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { useHandoffDataContext } from '../lib/handoffData';
+import { api } from '../lib/api/client';
 
-export const GitActionsView: React.FC = () => {
+export const GitActionsView: React.FC<{ repositoryId?: number | null }> = ({ repositoryId }) => {
+  const handoffData = useHandoffDataContext();
   const [commitMessage, setCommitMessage] = useState('');
-  const [branchName, setBranchName] = useState('feature/interactive-diff');
+  const [branchName, setBranchName] = useState('');
   const [stashName, setStashName] = useState('Work in progress');
-  const [stagedFiles, setStagedFiles] = useState([
-    { path: 'src/components/GitActions.tsx', adds: 32, dels: 4, staged: true },
-    { path: 'src/utils/git.ts', adds: 19, dels: 2, staged: true },
-    { path: 'tests/git.test.ts', adds: 12, dels: 0, staged: true },
-  ]);
+  const [stagedFiles, setStagedFiles] = useState(() => (handoffData?.changedFiles ?? []).map(file => ({ path: file.path, adds: file.additions, dels: file.deletions, staged: true })));
+  const [feedback, setFeedback] = useState('');
+  const runAction = (action: string) => { if (!repositoryId) return; api.gitAction(repositoryId, { action: action as any, message: commitMessage || undefined, name: branchName || undefined, confirm: true }).then(receipt => setFeedback(receipt.message)).catch(error => setFeedback(error instanceof Error ? error.message : 'Git action failed')); };
 
   const toggleStaged = (index: number) => {
     setStagedFiles((prev) =>
@@ -134,7 +135,7 @@ export const GitActionsView: React.FC = () => {
               onChange={(e) => setCommitMessage(e.target.value)}
               className="w-full p-2.5 bg-[#0B0E14] border border-[#1E2638] focus:border-[#00F2FE] text-[12px] font-mono text-[#F1F5F9] placeholder-[#475569] focus:outline-none resize-none"
             />
-            <Button variant="primary" className="w-full text-xs" icon={<GitCommit className="w-3.5 h-3.5" />}>
+            <Button onClick={() => runAction('commit')} variant="primary" className="w-full text-xs" icon={<GitCommit className="w-3.5 h-3.5" />}>
               Commit ({stagedCount} files)
             </Button>
           </div>
@@ -151,10 +152,10 @@ export const GitActionsView: React.FC = () => {
               className="w-full h-[28px] px-2.5 bg-[#0B0E14] border border-[#1E2638] text-[11px] text-[#F1F5F9] focus:outline-none focus:border-[#00F2FE]"
             />
             <div className="flex gap-2">
-              <Button variant="secondary" size="sm" className="flex-1">
+              <Button onClick={() => runAction('create_branch')} variant="secondary" size="sm" className="flex-1">
                 Create
               </Button>
-              <Button variant="secondary" size="sm" className="flex-1">
+              <Button onClick={() => runAction('switch_branch')} variant="secondary" size="sm" className="flex-1">
                 Switch
               </Button>
             </div>
@@ -166,13 +167,13 @@ export const GitActionsView: React.FC = () => {
               Remote operations
             </div>
             <div className="flex gap-2">
-              <Button variant="secondary" size="sm" className="flex-1" icon={<DownloadCloud className="w-3 h-3" />}>
+              <Button onClick={() => runAction('fetch')} variant="secondary" size="sm" className="flex-1" icon={<DownloadCloud className="w-3 h-3" />}>
                 Fetch
               </Button>
-              <Button variant="secondary" size="sm" className="flex-1" icon={<DownloadCloud className="w-3 h-3" />}>
+              <Button onClick={() => runAction('pull')} variant="secondary" size="sm" className="flex-1" icon={<DownloadCloud className="w-3 h-3" />}>
                 Pull
               </Button>
-              <Button variant="secondary" size="sm" className="flex-1" icon={<UploadCloud className="w-3 h-3" />}>
+              <Button onClick={() => runAction('push')} variant="secondary" size="sm" className="flex-1" icon={<UploadCloud className="w-3 h-3" />}>
                 Push
               </Button>
             </div>

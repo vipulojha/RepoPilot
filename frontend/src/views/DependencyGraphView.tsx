@@ -12,9 +12,13 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
-import { GRAPH_NODES, GRAPH_EDGES, GraphNode } from '../data/mockData';
+import { useHandoffDataContext } from '../lib/handoffData';
+import type { GraphNode } from '../data/mockData';
 
 export const DependencyGraphView: React.FC = () => {
+  const handoffData = useHandoffDataContext();
+  const GRAPH_NODES: GraphNode[] = (handoffData?.graph.nodes ?? []).map((node, index) => ({ id: String(node.id), label: node.name ?? node.path, sublabel: node.path, category: 'core', x: 80 + (index % 3) * 240, y: 60 + Math.floor(index / 3) * 120, risk: 'low', fanIn: node.incoming, fanOut: node.outgoing } as unknown as GraphNode));
+  const GRAPH_EDGES = (handoffData?.graph.edges ?? []).map(edge => ({ source: String(edge.source), target: String(edge.target), type: edge.kind === 'import' ? 'direct' : 'transitive' }));
   const [selectedNodeId, setSelectedNodeId] = useState<string>('core/auth.ts');
   const [searchQuery, setSearchQuery] = useState('');
   const [depth, setDepth] = useState('2');
@@ -137,7 +141,7 @@ export const DependencyGraphView: React.FC = () => {
           </defs>
 
           {/* Edges */}
-          {GRAPH_EDGES.map((edge) => {
+          {GRAPH_EDGES.map((edge, edgeIndex) => {
             const sourceNode = GRAPH_NODES.find((n) => n.id === edge.source);
             const targetNode = GRAPH_NODES.find((n) => n.id === edge.target);
             if (!sourceNode || !targetNode) return null;
@@ -152,7 +156,7 @@ export const DependencyGraphView: React.FC = () => {
             const pathData = `M ${sourceNode.x + 80} ${sourceNode.y + 40} C ${sourceNode.x + 80} ${midY}, ${targetNode.x + 80} ${midY}, ${targetNode.x + 80} ${targetNode.y}`;
 
             return (
-              <g key={edge.id} opacity={isSelectedConn ? 1 : 0.6}>
+               <g key={`${edge.source}-${edge.target}-${edgeIndex}`} opacity={isSelectedConn ? 1 : 0.6}>
                 <path
                   d={pathData}
                   fill="none"

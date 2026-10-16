@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Search as SearchIcon,
   X,
@@ -11,10 +11,13 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { SEARCH_DATA } from '../data/mockData';
+import { api } from '../lib/api/client';
 
-export const SearchView: React.FC = () => {
+export const SearchView: React.FC<{ repositoryId?: number | null; onSelectFile?: (id:number) => void }> = ({ repositoryId, onSelectFile }) => {
   const [activeTab, setActiveTab] = useState<'all' | 'files' | 'symbols' | 'tests'>('all');
-  const [query, setQuery] = useState(SEARCH_DATA.query);
+  const [query, setQuery] = useState('');
+  const [liveResults, setLiveResults] = useState<any[] | null>(null);
+  useEffect(() => { if (!repositoryId || !query.trim()) { setLiveResults(null); return; } const timer = window.setTimeout(() => { api.search(repositoryId, query).then(result => setLiveResults(result.items)).catch(() => setLiveResults([])); }, 250); return () => window.clearTimeout(timer); }, [repositoryId, query]);
   const [selectedResult, setSelectedResult] = useState('validateSession');
 
   return (
@@ -94,7 +97,7 @@ export const SearchView: React.FC = () => {
       <div className="flex-1 flex overflow-hidden">
         {/* Left: Result List Pane */}
         <div className="w-[320px] border-r border-[#1E2638] bg-[#0E131F] overflow-y-auto p-3 space-y-3 shrink-0">
-          {SEARCH_DATA.results.map((res, idx) => (
+          {(liveResults ?? (query ? [] : SEARCH_DATA.results)).map((res: any, idx) => (
             <div key={idx} className="space-y-1">
               <div className="flex items-center gap-1 text-[11px] text-[#94A3B8] font-semibold">
                 <ChevronRight className="w-3.5 h-3.5 text-[#475569]" />
@@ -103,7 +106,7 @@ export const SearchView: React.FC = () => {
               </div>
 
               <div className="pl-4 space-y-0.5 border-l border-[#1E2638] ml-2">
-                {res.symbols.map((sym, sIdx) => {
+                {res.symbols.map((sym: any, sIdx: number) => {
                   const isSelected = selectedResult === sym.name;
                   return (
                     <div
