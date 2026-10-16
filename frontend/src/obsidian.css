@@ -21,7 +21,8 @@
   --obsidian-quiet: #61718a;
   --obsidian-mono: 'DM Mono', ui-monospace, monospace;
   --obsidian-sans: 'Space Grotesk', system-ui, sans-serif;
-  --obsidian-radius: 8px;
+  --obsidian-radius: 0px;
+  --obsidian-cyan-bright: #72f8ff;
 }
 
 html,
@@ -51,6 +52,9 @@ textarea:focus-visible {
 .sidebar,
 .topbar { background: var(--obsidian-shell); border-color: var(--obsidian-border); }
 .sidebar { box-shadow: 18px 0 50px rgb(0 0 0 / 28%); }
+.sidebar.collapsed { background: var(--obsidian-shell); }
+.topbar { height: 56px; }
+.content-wrap { padding-top: 26px; }
 .brand-mark,
 .repo-symbol,
 .avatar,
@@ -87,6 +91,85 @@ textarea:focus-visible {
   border-color: var(--obsidian-border-strong);
 }
 
+.repo-switcher,
+.button,
+.filter-button,
+select,
+input,
+textarea,
+.panel,
+.card,
+.metric,
+.graph-toolbar,
+.graph-workspace,
+.results-panel,
+.impact-results,
+.file-tree-panel,
+.file-list-panel,
+.git-status-panel,
+.code-panel,
+.onboarding-mode,
+.command-palette,
+.app-dialog { border-radius: var(--obsidian-radius); }
+
+.panel,
+.card,
+.metric { box-shadow: none; }
+.panel-head { border-bottom-color: var(--obsidian-border); }
+.panel-head h2 { font-family: var(--obsidian-sans); letter-spacing: -.02em; }
+.page-header { border-bottom-color: var(--obsidian-border); }
+.page-header h1 { letter-spacing: -.04em; }
+.muted,
+.page-header p,
+.empty-files span,
+.git-status-message,
+.git-status-meta,
+.git-remotes { color: var(--obsidian-muted); }
+.status { border-radius: var(--obsidian-radius); font-family: var(--obsidian-mono); }
+.status.high { color: var(--obsidian-mint); border-color: color-mix(in srgb, var(--obsidian-mint) 52%, var(--obsidian-border)); background: color-mix(in srgb, var(--obsidian-mint) 10%, var(--obsidian-panel)); }
+.status.medium { color: var(--obsidian-amber); border-color: color-mix(in srgb, var(--obsidian-amber) 52%, var(--obsidian-border)); background: color-mix(in srgb, var(--obsidian-amber) 10%, var(--obsidian-panel)); }
+.status.low { color: var(--obsidian-cyan); border-color: color-mix(in srgb, var(--obsidian-cyan) 52%, var(--obsidian-border)); background: color-mix(in srgb, var(--obsidian-cyan) 10%, var(--obsidian-panel)); }
+.status.danger,
+.error-line { color: var(--obsidian-rose); }
+
+.source-view { background: var(--obsidian-void); border: 1px solid var(--obsidian-border); }
+.source-line { border-bottom-color: color-mix(in srgb, var(--obsidian-border) 65%, transparent); }
+.line-number { color: var(--obsidian-quiet); background: var(--obsidian-shell); border-right-color: var(--obsidian-border); font-family: var(--obsidian-mono); }
+.source-line code { color: var(--obsidian-ink); font-family: var(--obsidian-mono); }
+.hub-side .panel { background: var(--obsidian-panel); }
+.hub-list > div { border-bottom-color: var(--obsidian-border); }
+.hub-list small { color: var(--obsidian-muted); }
+
+.tree-search,
+.file-toolbar,
+.table-head,
+.git-status-meta,
+.git-remotes { border-color: var(--obsidian-border); }
+.file-row,
+.commit-row,
+.change-file-row,
+.git-action-files label,
+.stash-row { border-color: var(--obsidian-border); }
+.file-row strong,
+.commit-row strong,
+.change-file-row strong,
+.git-action-files strong,
+.stash-row strong { color: var(--obsidian-ink); }
+.file-row small,
+.commit-row small,
+.change-file-row small,
+.git-action-files small,
+.stash-row small { color: var(--obsidian-muted); }
+
+.change-grid,
+.git-actions-grid { align-items: start; }
+.reason-list li { border-bottom-color: var(--obsidian-border); }
+.action-receipt { border-color: var(--obsidian-border-focus); background: var(--obsidian-panel); }
+.action-receipt.succeeded { border-color: var(--obsidian-mint); }
+.action-receipt.failed { border-color: var(--obsidian-rose); }
+.commit-mark { color: var(--obsidian-cyan); }
+.commit-row:hover .commit-mark { color: var(--obsidian-amber); }
+
 .icon-button:hover,
 .command-trigger:hover,
 .button:hover:not(:disabled),
@@ -110,7 +193,7 @@ textarea:focus-visible {
 .button.cyan { background: var(--obsidian-cyan); border-color: var(--obsidian-cyan); color: var(--obsidian-void); }
 .button-primary:hover:not(:disabled),
 .button.primary:hover:not(:disabled),
-.button.cyan:hover:not(:disabled) { background: #72f8ff; color: var(--obsidian-void); }
+.button.cyan:hover:not(:disabled) { background: var(--obsidian-cyan-bright); color: var(--obsidian-void); }
 .button-danger { background: var(--obsidian-rose); border-color: var(--obsidian-rose); color: var(--obsidian-void); }
 .button-danger:hover:not(:disabled) { background: #ff6f91; color: var(--obsidian-void); }
 .button-quiet { background: var(--obsidian-panel); border-color: var(--obsidian-border); color: var(--obsidian-muted); }
