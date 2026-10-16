@@ -35,11 +35,11 @@ export const SignalPulse: React.FC<SignalPulseProps> = ({children, range = {from
   return <div className={className} style={{...style, ...animatedStyle(visible ? 1 : 0, 1 + Math.min(pulse, 1) * (maxScale - 1))}}>{children}</div>;
 };
 
-export type ProgressiveGraphEdgeProps = {d: string; range?: Range; color?: string; width?: number; className?: string};
-export const ProgressiveGraphEdge: React.FC<ProgressiveGraphEdgeProps> = ({d, range = {from: 0, to: 24}, color = 'currentColor', width = 2, className}) => {
+export type ProgressiveGraphEdgeProps = {d: string; range?: Range; color?: string; width?: number; dashArray?: string; className?: string};
+export const ProgressiveGraphEdge: React.FC<ProgressiveGraphEdgeProps> = ({d, range = {from: 0, to: 24}, color = 'currentColor', width = 2, dashArray, className}) => {
   const frame = useCurrentFrame();
   const amount = progress(frame, range);
-  return <path d={d} pathLength={1} fill="none" stroke={color} strokeWidth={width} strokeLinecap="round" strokeDasharray="1" strokeDashoffset={1 - amount} className={className} />;
+  return <path d={d} pathLength={1} fill="none" stroke={color} strokeWidth={width} strokeLinecap="round" strokeDasharray={dashArray ?? "1"} strokeDashoffset={dashArray ? undefined : 1 - amount} className={className} />;
 };
 
 export type GraphNodeActivationProps = {children: ReactNode; range?: Range; className?: string; style?: CSSProperties};
