@@ -34,7 +34,6 @@ import {
   ObsidianTelemetryShell,
 } from './components/rebuild'
 import './components/rebuild/rebuild.css'
-import './components/rebuild/app.css'
 
 const WelcomeExperience = lazy(() => import('./components/welcome/WelcomeExperience').then(module => ({ default: module.WelcomeExperience })))
 
