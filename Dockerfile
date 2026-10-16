@@ -7,18 +7,16 @@ RUN npm ci
 COPY frontend/ ./
 RUN npm run build
 
-FROM python:3.12-slim@sha256:2b4f19dae3a777dfc3b76730bda1e82e1f66ab2a2686fa93ca78edbfb4f04ffe AS python-deps
+FROM python:3.12-alpine@sha256:1b668429b3511ab407d8e00648891631b0b1a4d7e15e3ca70f38ab5b91ad4ab4 AS python-deps
 WORKDIR /build/backend
 COPY backend/pyproject.toml backend/uv.lock ./
-RUN apt-get update \
-    && apt-get upgrade -y --no-install-recommends \
-    && apt-get install --no-install-recommends -y build-essential libffi-dev libssl-dev \
+RUN apk add --no-cache build-base libffi-dev openssl-dev \
     && python -m pip install --no-cache-dir uv==0.13.1 \
     && uv export --frozen --no-dev --no-emit-project --format requirements-txt --output-file /tmp/requirements.txt \
     && python -m pip install --no-cache-dir --target /opt/python-deps --requirement /tmp/requirements.txt \
-    && rm -rf /root/.cache /tmp/requirements.txt /var/lib/apt/lists/*
+    && rm -rf /root/.cache /tmp/requirements.txt
 
-FROM python:3.12-slim@sha256:2b4f19dae3a777dfc3b76730bda1e82e1f66ab2a2686fa93ca78edbfb4f04ffe AS runtime
+FROM python:3.12-alpine@sha256:1b668429b3511ab407d8e00648891631b0b1a4d7e15e3ca70f38ab5b91ad4ab4 AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     APP_ENV=production \
@@ -27,24 +25,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     DATABASE_URL=sqlite:////app/data/repopilot.db \
     PYTHONPATH=/opt/python-deps:/app/backend
 WORKDIR /app/backend
-RUN apt-get update \
-    && apt-get upgrade -y --no-install-recommends \
-    && apt-get install --no-install-recommends -y git \
-    && rm -rf /var/lib/apt/lists/* /var/cache/apt/* \
+RUN apk add --no-cache git ca-certificates openssh-client \
+    && apk add --no-cache --repository https://dl-cdn.alpinelinux.org/alpine/edge/main \
+        expat=2.9.0-r0 libexpat=2.9.0-r0 zlib=1.3.2-r1 \
     && python -m pip uninstall -y pip \
     && rm -rf /root/.cache /usr/local/bin/pip /usr/local/bin/pip3 /usr/local/lib/python3.12/site-packages/pip /usr/local/lib/python3.12/site-packages/pip-*.dist-info
-RUN set -eux; \
-    if expat_status="$(dpkg-query -W -f='${Status}' libexpat1 2>/dev/null)"; then \
-        test "$expat_status" = 'install ok installed'; \
-        expat_version="$(dpkg-query -W -f='${Version}' libexpat1)"; \
-        dpkg --compare-versions "$expat_version" ge '2.9.0-1~deb13u1'; \
-        printf 'Verified libexpat1=%s\\n' "$expat_version"; \
-    else \
-        printf 'Verified libexpat1 is not installed\\n'; \
-    fi; \
-    zlib_version="$(dpkg-query -W -f='${Version}' zlib1g)"; \
-    printf 'Verified zlib1g=%s (no fixed Debian release reported)\\n' "$zlib_version"
-RUN useradd --create-home --uid 10001 repopilot \
+RUN adduser -D -u 10001 repopilot \
     && mkdir -p /app/data /app/frontend/dist \
     && chown -R repopilot:repopilot /app
 COPY --from=python-deps --chown=repopilot:repopilot /opt/python-deps /opt/python-deps
