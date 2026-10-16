@@ -204,6 +204,26 @@ The committed `repopilot-design-system-&-handoff-suite/` directory is reference
 material for the Obsidian Telemetry visual language. The production app does not
 run that prototype package or depend on its external integrations.
 
+## Cinematic product film
+
+The self-contained Remotion production lives in `film/`. It is a 58-second,
+16:9 product film built from the real RepoPilot workflow: scan, structure,
+source intelligence, dependency graph, impact analysis, hotspots, and Git
+context. Install and render it offline after dependencies are present:
+
+```bash
+npm --prefix film ci
+npm --prefix film run typecheck
+npm --prefix film run render
+```
+
+The finished video is written to `film/out/repopilot-film.mp4`. To preview the
+composition in Remotion Studio:
+
+```bash
+npm --prefix film run start
+```
+
 ## License
 
 See [LICENSE](LICENSE).

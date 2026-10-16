@@ -12,3 +12,6 @@ npm --prefix frontend run typecheck
 
 echo "== frontend build =="
 npm --prefix frontend run build
+
+echo "== film typecheck =="
+npm --prefix film run typecheck
