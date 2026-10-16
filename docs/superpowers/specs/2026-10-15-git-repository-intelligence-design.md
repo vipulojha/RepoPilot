@@ -47,7 +47,7 @@ state; no long-lived cache is introduced.
 
 The Git service is independent of routes and UI so History, Change
 Intelligence, Git Actions, and CLI can reuse it later. Tests use temporary Git
-repositories and fake command runners, never `/home/RepoPilot`, network, or
+repositories and fake command runners, never the developer checkout, network, or
 GitHub. Coverage includes clean/dirty status classes, rename/conflict,
 branches, detached/empty/shallow repositories, upstream ahead/behind/diverged,
 multiple remotes, credential sanitization, boundaries, missing Git, timeouts,

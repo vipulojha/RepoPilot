@@ -19,7 +19,7 @@ export interface OnboardingViewProps {
 }
 
 export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) => {
-  const [repoPath, setRepoPath] = useState('/home/developer/workspace/repo-pilot');
+  const [repoPath, setRepoPath] = useState('/path/to/repo-pilot');
   const [branch, setBranch] = useState('main');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
@@ -118,7 +118,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
             <div className="space-y-1.5 text-[11px]">
               <div
                 onClick={() => {
-                  setRepoPath('/home/developer/workspace/repo-pilot');
+                  setRepoPath('/path/to/repo-pilot');
                   setBranch('main');
                 }}
                 className="flex items-center justify-between p-2.5 bg-[#111622] border border-[#1E2638] hover:border-[#00F2FE] cursor-pointer transition-colors"
@@ -136,7 +136,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
 
               <div
                 onClick={() => {
-                  setRepoPath('/home/developer/workspace/inventory-service');
+                  setRepoPath('/path/to/inventory-service');
                   setBranch('develop');
                 }}
                 className="flex items-center justify-between p-2.5 bg-[#111622] border border-[#1E2638] hover:border-[#00F2FE] cursor-pointer transition-colors"

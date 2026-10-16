@@ -50,16 +50,16 @@
 ### 6. Full validation and Docker
 
 ```bash
-cd /home/RepoPilot/backend
+cd backend
 uv run python -m compileall app
 uv run pytest
 
-cd /home/RepoPilot/frontend
+cd frontend
 npm ci
 npm run typecheck
 npm run build
 
-cd /home/RepoPilot
+cd ..
 ```
 
 Run a disposable non-root container against a temporary Git fixture and local

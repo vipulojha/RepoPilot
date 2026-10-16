@@ -2,11 +2,13 @@
 node_modules/
 .venv/
 __pycache__/
+.pytest_cache/
+.ruff_cache/
 *.db
 *.sqlite
 *.sqlite3
 *.tsbuildinfo
-data/
+/data/
 
 # Build and distribution output
 dist/
@@ -45,6 +47,7 @@ playwright-report/
 .DS_Store
 Thumbs.db
 Desktop.ini
+*.Zone.Identifier
 
 # Temporary files
 tmp/

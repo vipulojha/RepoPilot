@@ -90,7 +90,7 @@ src/
 │       ├── StateView.tsx           # Empty, loading, and error states
 │       └── Tabs.tsx                # Sharp underline and segmented filter tabs
 ├── data/
-│   └── mockData.ts                 # Visual mock data matching screenshots exactly
+│   └── mockData.ts                 # Optional prototype-only visual reference data (not runtime data)
 ├── tokens/
 │   └── index.ts                    # Obsidian Telemetry design tokens
 └── views/

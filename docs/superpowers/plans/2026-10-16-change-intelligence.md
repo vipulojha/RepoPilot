@@ -77,7 +77,7 @@ Steps are ordered; each gate must pass before the next begins.
 
 ### 7. Docker acceptance smoke test
 
-- Build from `/home/RepoPilot` with `docker build -t repopilot:local .`.
+- Build from the repository root with `docker build -t repopilot:local .`.
 - Run a disposable non-root container with a temporary fixture mounted read-only
   and a temporary `/app/data` volume.
 - Register, scan, call Change Intelligence for clean and controlled changed
@@ -87,16 +87,16 @@ Steps are ordered; each gate must pass before the next begins.
 ## Exact validation commands
 
 ```bash
-cd /home/RepoPilot/backend
+cd backend
 uv run python -m compileall app
 uv run pytest
 
-cd /home/RepoPilot/frontend
+cd frontend
 npm ci
 npm run typecheck
 npm run build
 
-cd /home/RepoPilot
+cd ..
 docker build -t repopilot:local .
 ```
 
