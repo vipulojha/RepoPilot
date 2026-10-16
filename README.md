@@ -5,10 +5,10 @@ without executing its source, builds a snapshot of files, symbols, imports, and
 static test relationships, and exposes that information through a FastAPI API,
 React workspace, and terminal CLI.
 
-The frontend uses the Stitch handoff in
-`repopilot-design-system-&-handoff-suite/` as its visual reference. That folder
-contains reference tokens, screen specifications, and prototype components; the
-production application is in `frontend/` and `backend/`.
+The frontend uses the checked-in UI kit in `repopilot-ui-kit/` as its visual
+source of truth. It contains the Obsidian Telemetry tokens, screen
+specifications, reference components, and screenshots; the production
+application is in `frontend/` and `backend/`.
 
 ## Product Demo
 
@@ -45,9 +45,10 @@ production application is in `frontend/` and `backend/`.
 
 ```text
 frontend/                 React + TypeScript + Vite
-  src/App.tsx             application composition and navigation state
-  src/components/rebuild  Stitch-derived shell and workspaces
-  src/lib/api/client.ts   typed API client
+  src/KitApp.tsx          UI-kit shell, routes, screens, and navigation state
+  src/kit                  UI-kit primitives and Obsidian Telemetry styles
+  src/lib/api/client.ts    typed API client
+repopilot-ui-kit/          visual source of truth and reference artifacts
 backend/                  Python 3.12 + FastAPI + SQLAlchemy
   app/services             scanning, parsing, search, graph, impact, Git
   app/api/v1               REST endpoints
