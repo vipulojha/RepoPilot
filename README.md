@@ -130,19 +130,21 @@ non-root user. The initial image build needs network access to download base
 images and packages; the runtime uses the frozen environment from the image and
 does not re-sync dependencies on startup.
 
-The runtime image uses the current pinned `python:3.12-slim` Debian base. It
-keeps Debian's `git` package because repository onboarding, Git status, history,
-compare, and Git actions invoke the `git` executable. It does not keep `uv`,
-pip, compilers, headers, or Python build dependencies. The Dockerfile fails the
-build if an installed `libexpat1` is older than `2.9.0-1~deb13u1`; the final
-image verifies `libexpat1=2.9.0-1~deb13u1`. Docker Scout currently reports zlib
-with no available fixed release. `zlib1g` cannot be removed without breaking
-Python's `zlib` extension and the Git executable, both of which link to
-`libz.so.1`; this is not hidden with a scanner exclusion. RepoPilot has no
-application-level calls to `gzwrite`, `gzprintf`, or `gzvprintf`, the vulnerable
-non-blocking `gz_*` path in CVE-2026-85091, and its scanner processes source
-files rather than archives. Debian's tar package is retained because dpkg
-depends on it in the supported slim base.
+The runtime image uses the current pinned `python:3.12-alpine` base and has no
+Debian package database. It keeps Git because repository onboarding, Git status,
+history, compare, and Git actions invoke the `git` executable; `ca-certificates`
+for HTTPS remotes; and the default OpenSSH client for SSH remotes. It does not
+keep `uv`, pip, compilers, headers, Node.js, npm, apt, dpkg, Perl, tar, curl,
+diffutils, or systemd. The runtime package installation pins the fixed Alpine
+`expat`/`libexpat` `2.9.0-r0` packages and `zlib` `1.3.2-r1` from Alpine's
+signed edge repository because those are newer than the base repository's
+versions. No scanner findings are hidden.
+
+The remaining packages are runtime dependencies, not build leftovers: Python's
+musl/base files and BusyBox; Python's SQLite/FTS5, TLS, compression, timezone,
+and native-extension libraries; Git and its HTTPS/libcurl, regex, compression,
+and XML dependencies; and OpenSSH plus its crypto/Kerberos/terminal support.
+The complete inventory is reproducible with `apk info -vv` in the final image.
 
 ```bash
 docker build -t repopilot:local .
@@ -161,30 +163,19 @@ docker ps
 docker logs repopilot-local
 ```
 
-For the security verification requested for the release image, run:
+For the final runtime package inventory and dependency checks, run:
 
 ```bash
-docker run --rm repopilot:high-fixed sh -c '
-  set -eu
-  status="$(dpkg-query -W -f="${Status}" libexpat1 2>/dev/null || true)"
-  if [ "$status" = "install ok installed" ]; then
-    version="$(dpkg-query -W -f="${Version}" libexpat1)"
-    dpkg --compare-versions "$version" ge "2.9.0-1~deb13u1"
-    printf "libexpat1=%s\\n" "$version"
-  else
-    printf "libexpat1=not-installed\\n"
-  fi
-  dpkg-query -W -f="zlib1g=${Version}\\n" zlib1g
-  python -c "import zlib; print(\"python-zlib=available\")"
-'
+docker run --rm --entrypoint /sbin/apk repopilot:minimal info -vv
+docker run --rm --entrypoint /bin/sh repopilot:minimal -c \
+  'python -c "import sqlite3, ssl, zlib; assert sqlite3.connect(\":memory:\").execute(\"select sqlite_compileoption_used(\\\"ENABLE_FTS5\\\")\").fetchone()[0] == 1"'
 ```
 
 The release build and scan commands are:
 
 ```bash
-docker build --pull -t repopilot:high-fixed .
-docker scout cves repopilot:high-fixed
-docker scout quickview repopilot:high-fixed
+docker build --pull -t repopilot:minimal .
+docker scout cves repopilot:minimal
 ```
 
 Register `/workspace` through the onboarding UI or API to scan the mounted
