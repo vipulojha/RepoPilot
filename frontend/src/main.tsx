@@ -1,12 +1,9 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import App from './App'
-import './styles.css'
-import './handoff.css'
-import './components/rebuild/app.css'
+import KitApp from './KitApp'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <KitApp />
   </StrictMode>,
 )

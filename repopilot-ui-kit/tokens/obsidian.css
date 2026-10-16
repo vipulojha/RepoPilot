@@ -1,0 +1,31 @@
+/* Obsidian Telemetry — Tailwind v4 theme. Import after `@import "tailwindcss";`
+   Load fonts in your HTML head:
+   https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap */
+@theme {
+  --color-canvas: #0B0E14;
+  --color-panel: #111622;
+  --color-trough: #182030;
+  --color-outline: #1E2638;
+  --color-inset: #2D3A54;
+  --color-cyan: #00F2FE;
+  --color-cyan-hover: #38F9FF;
+  --color-cyan-active: #00C2CC;
+  --color-violet: #9D4EDD;
+  --color-amber: #FFB703;
+  --color-emerald: #06D6A0;
+  --color-crimson: #EF476F;
+  --color-ink: #F1F5F9;
+  --color-ink-muted: #94A3B8;
+  --color-ink-faint: #475569;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-sans: "Geist", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --radius-*: initial; /* sharp corners everywhere */
+}
+body { background: var(--color-canvas); color: #dee2f3; font: 400 13px/18px var(--font-sans); -webkit-font-smoothing: antialiased; }
+.text-headline-xl { font: 600 24px/32px var(--font-display); letter-spacing: -0.02em; }
+.text-headline-lg { font: 600 18px/24px var(--font-display); letter-spacing: -0.01em; }
+.text-headline-sm { font: 600 14px/20px var(--font-display); }
+.text-code-md { font: 400 12px/18px var(--font-mono); letter-spacing: -0.01em; }
+.text-code-sm { font: 400 11px/16px var(--font-mono); }
+.text-label-mono { font: 500 10px/14px var(--font-mono); text-transform: uppercase; letter-spacing: 0.04em; }
