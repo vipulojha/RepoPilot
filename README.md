@@ -276,6 +276,21 @@ composition in Remotion Studio:
 npm --prefix film run start
 ```
 
+### Narrated demo status
+
+The checked-in MP4 assets contain video and an audio track, but the current
+Remotion composition in `film/src/Root.tsx` does not include an `<Audio>` source
+or a recorded narration asset. The audio track is therefore not evidence of a
+usable voice-over. Do not overwrite the existing MP4s while fixing this.
+
+To publish the intended narrated demo, preserve the original screen recording,
+add the supplied voice recording as a checked-in/private build input (or mux it
+at render time), update the composition/render command, render
+`film/out/repopilot-film.mp4`, and verify that the exported audio is audible
+before updating the README/CDN link. The original voice recording is not
+present in this repository, so regeneration cannot be completed from the
+current files alone.
+
 ## License
 
 See [LICENSE](LICENSE).
