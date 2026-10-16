@@ -26,11 +26,14 @@ const nodeTypes = { file: FileNode }
 function GraphCanvas({ nodes, edges, selectedId, setSelectedId }: { nodes: Node<GraphNodeData>[]; edges: Edge[]; selectedId: string; setSelectedId: (id: string) => void }) {
   const { fitView } = useReactFlow()
   useEffect(() => { const timer = window.setTimeout(() => fitView({ padding: 0.18, duration: 250 }), 0); return () => window.clearTimeout(timer) }, [fitView, nodes.length])
-  return <ReactFlow nodes={nodes.map(node => ({ ...node, selected: node.id === selectedId }))} edges={edges} nodeTypes={nodeTypes} fitView onNodeClick={(_, node) => setSelectedId(node.id)} minZoom={0.25} maxZoom={2}>
-    <Background color="#273247" gap={24} size={1} />
-    <Controls className="!bg-[#111622] !border-[#2D3A54]" />
-    <MiniMap nodeColor={node => node.data?.isTest ? '#FFB703' : '#9D4EDD'} className="!bg-[#0E131F] !border-[#2D3A54]" />
-  </ReactFlow>
+  return <>
+    <button type="button" onClick={() => fitView({ padding: 0.18, duration: 250 })} className="absolute left-4 top-4 z-10 border border-[#2D3A54] bg-[#111622] px-2.5 py-1.5 font-mono text-[10px] text-[#DEE2F3] hover:border-[#00F2FE] hover:text-[#00F2FE]">Fit / center</button>
+    <ReactFlow nodes={nodes.map(node => ({ ...node, selected: node.id === selectedId }))} edges={edges} nodeTypes={nodeTypes} fitView onNodeClick={(_, node) => setSelectedId(node.id)} minZoom={0.25} maxZoom={2}>
+      <Background color="#273247" gap={24} size={1} />
+      <Controls className="!bg-[#111622] !border-[#2D3A54]" />
+      <MiniMap nodeColor={node => node.data?.isTest ? '#FFB703' : '#9D4EDD'} className="!bg-[#0E131F] !border-[#2D3A54]" />
+    </ReactFlow>
+  </>
 }
 
 export const DependencyGraphView: React.FC<DependencyGraphViewProps> = ({ onSelectFile }) => {
@@ -51,7 +54,7 @@ export const DependencyGraphView: React.FC<DependencyGraphViewProps> = ({ onSele
   }, [graph, search])
   const edges = useMemo<Edge[]>(() => (graph?.edges ?? []).filter(edge => nodes.some(node => node.id === String(edge.source)) && nodes.some(node => node.id === String(edge.target))).map(edge => ({ id: String(edge.id), source: String(edge.source), target: String(edge.target), type: 'smoothstep', label: edge.kind, className: edge.kind === 'direct' || edge.kind === 'import' ? 'stroke-[#00F2FE]' : 'stroke-[#9D4EDD] stroke-dasharray-[4_3]' })), [graph, nodes])
   const selectedNode = nodeById.get(selectedId)
-  const select = useCallback((id: string) => { setSelectedId(id); const node = nodeById.get(id); if (node) onSelectFile?.(node.id) }, [nodeById, onSelectFile])
+  const select = useCallback((id: string) => setSelectedId(id), [])
 
   if (!handoffData) return <div className="flex h-full items-center justify-center bg-[#0B0E14] text-sm text-[#94A3B8]">Loading dependency graph…</div>
   if (!graph) return <div className="flex h-full items-center justify-center bg-[#0B0E14] text-sm text-[#EF476F]">Unable to load dependency graph.</div>

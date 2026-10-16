@@ -10,11 +10,11 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { useHandoffDataContext } from '../lib/handoffData';
-type HistoryCommit = { hash: string; shortHash: string; message: string; author: string; timestamp: string; filesChanged: number; additions: number; deletions: number; details?: { files: { path: string; adds: number; dels: number }[]; warning?: string } };
+type HistoryCommit = { hash: string; shortHash: string; message: string; author: string; timestamp: string; filesChanged: number; additions: number; deletions: number; details?: { files: { path: string; adds: number; dels: number; fileId: number | null }[]; warning?: string } };
 
-export const HistoryView: React.FC = () => {
+export const HistoryView: React.FC<{ onSelectFile?: (id: number) => void }> = ({ onSelectFile }) => {
   const handoffData = useHandoffDataContext();
-  const HISTORY_COMMITS: HistoryCommit[] = (handoffData?.history?.items ?? []).map(commit => ({ hash: commit.sha, shortHash: commit.short_sha, message: commit.subject, author: commit.author, timestamp: commit.committed_at, filesChanged: commit.changed_files, additions: commit.additions, deletions: commit.deletions, details: { files: commit.files.map(file => ({ path: file.path, adds: file.additions, dels: file.deletions })) } }));
+  const HISTORY_COMMITS: HistoryCommit[] = (handoffData?.history?.items ?? []).map(commit => ({ hash: commit.sha, shortHash: commit.short_sha, message: commit.subject, author: commit.author, timestamp: commit.committed_at, filesChanged: commit.changed_files, additions: commit.additions, deletions: commit.deletions, details: { files: commit.files.map(file => ({ path: file.path, adds: file.additions, dels: file.deletions, fileId: file.file_id })) } }));
   const [selectedCommit, setSelectedCommit] = useState<HistoryCommit | null>(null);
 
   return (
@@ -120,8 +120,11 @@ export const HistoryView: React.FC = () => {
             </div>
 
             {(selectedCommit?.details?.files ?? []).map((f, i) => (
-              <div
+              <button
                 key={i}
+                type="button"
+                disabled={!f.fileId}
+                onClick={() => f.fileId && onSelectFile?.(f.fileId)}
                 className="flex items-center justify-between p-2 bg-[#111622] border border-[#1E2638] text-[11px] hover:border-[#2D3A54]"
               >
                 <div className="flex items-center gap-2 truncate">
@@ -133,7 +136,7 @@ export const HistoryView: React.FC = () => {
                   <span className="text-[#475569]">|</span>
                   <span className="text-[#EF476F]">-{f.dels}</span>
                 </div>
-              </div>
+              </button>
             ))}
             {!selectedCommit && <div className="p-3 text-[11px] text-[#94A3B8]">Select a commit to inspect its changed files.</div>}
           </div>

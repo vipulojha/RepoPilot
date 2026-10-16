@@ -1,38 +1,24 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Folder,
   FileCode,
-  FileText,
-  ChevronDown,
-  ChevronRight,
-  Filter,
   RefreshCw,
-  ArrowUpDown,
   Search,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
-import { Badge } from '../components/ui/Badge';
 import { useHandoffDataContext } from '../lib/handoffData';
 
 type FileRow = { id: string; path: string; name: string; language: string; languageColor: string; fileSize: string; lines: number; fanIn: number | null; impactRisk: 'High' | 'Medium' | 'Low' };
 
-export const FilesView: React.FC<{ onSelectFile?: (id: number) => void }> = ({ onSelectFile }) => {
+export const FilesView: React.FC<{ onSelectFile?: (id: number) => void; selectedFileId?: number | null }> = ({ onSelectFile, selectedFileId }) => {
   const handoffData = useHandoffDataContext();
   const [filterQuery, setFilterQuery] = useState('');
   const [sortBy, setSortBy] = useState<'path' | 'lines' | 'risk'>('path');
-  const [selectedFile, setSelectedFile] = useState<string>('src/api/router.ts');
-  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({
-    packages: true,
-    api: true,
-    models: true,
-    core: false,
-  });
-
-  const toggleFolder = (folder: string) => {
-    setOpenFolders((prev) => ({ ...prev, [folder]: !prev[folder] }));
-  };
-
+  const [selectedFile, setSelectedFile] = useState<string>('');
   const sourceFiles: FileRow[] = (handoffData?.files ?? []).map(file => ({ id: String(file.id), path: file.relative_path, name: file.name, language: file.language || file.extension || 'Unknown', languageColor: '#00F2FE', fileSize: `${file.size_bytes ?? 0} B`, lines: file.line_count ?? 0, fanIn: null, impactRisk: 'Low' }));
+  useEffect(() => {
+    const current = sourceFiles.find(file => Number(file.id) === selectedFileId);
+    if (current) setSelectedFile(current.path);
+  }, [selectedFileId, handoffData?.files]);
   const filteredFiles = sourceFiles.filter(
     (f) =>
       f.path.toLowerCase().includes(filterQuery.toLowerCase()) ||
@@ -67,122 +53,10 @@ export const FilesView: React.FC<{ onSelectFile?: (id: number) => void }> = ({ o
           </div>
         </div>
 
-        {/* Nested Tree List */}
+        {/* Indexed repository tree */}
         <div className="flex-1 overflow-y-auto p-2 font-mono text-[12px] space-y-0.5">
-          {/* Root packages/ */}
-          <div>
-            <div
-              onClick={() => toggleFolder('packages')}
-              className="flex items-center gap-1.5 h-[26px] px-1.5 hover:bg-[#182030] cursor-pointer text-[#DEE2F3]"
-            >
-              {openFolders.packages ? (
-                <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8]" />
-              ) : (
-                <ChevronRight className="w-3.5 h-3.5 text-[#94A3B8]" />
-              )}
-              <Folder className="w-3.5 h-3.5 text-[#94A3B8]" />
-              <span>packages/</span>
-            </div>
-
-            {openFolders.packages && (
-              <div className="pl-4 space-y-0.5 border-l border-[#1E2638] ml-2.5 mt-0.5">
-                {/* api/ */}
-                <div
-                  onClick={() => toggleFolder('api')}
-                  className="flex items-center gap-1.5 h-[26px] px-1.5 hover:bg-[#182030] cursor-pointer text-[#DEE2F3]"
-                >
-                  {openFolders.api ? (
-                    <ChevronDown className="w-3 h-3 text-[#94A3B8]" />
-                  ) : (
-                    <ChevronRight className="w-3 h-3 text-[#94A3B8]" />
-                  )}
-                  <Folder className="w-3.5 h-3.5 text-[#94A3B8]" />
-                  <span>api/</span>
-                </div>
-
-                {openFolders.api && (
-                  <div className="pl-4 space-y-0.5 border-l border-[#1E2638] ml-2">
-                    <div
-                      onClick={() => setSelectedFile('src/api/router.ts')}
-                      className={`flex items-center justify-between h-[26px] px-1.5 cursor-pointer ${
-                        selectedFile === 'src/api/router.ts'
-                          ? 'bg-[#182030] text-[#00F2FE] border-l-2 border-[#00F2FE]'
-                          : 'hover:bg-[#161B28] text-[#94A3B8]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5 truncate">
-                        <FileCode className="w-3.5 h-3.5 text-[#3178C6]" />
-                        <span className="truncate">router.ts</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="px-1 py-0.2 bg-[#3178C6]/20 text-[#3178C6] text-[9px]">TS</span>
-                        <span className="text-[10px] text-[#475569]">120 lines</span>
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#475569]" />
-                      </div>
-                    </div>
-
-                    <div
-                      onClick={() => setSelectedFile('src/api/server.cs')}
-                      className={`flex items-center justify-between h-[26px] px-1.5 cursor-pointer ${
-                        selectedFile === 'src/api/server.cs'
-                          ? 'bg-[#182030] text-[#00F2FE] border-l-2 border-[#00F2FE]'
-                          : 'hover:bg-[#161B28] text-[#94A3B8]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5 truncate">
-                        <FileCode className="w-3.5 h-3.5 text-[#178600]" />
-                        <span className="truncate">server.cs</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="px-1 py-0.2 bg-[#178600]/20 text-[#178600] text-[9px]">C#</span>
-                        <span className="text-[10px] text-[#475569]">340 lines</span>
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#00F2FE]" />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* models/ */}
-                <div
-                  onClick={() => toggleFolder('models')}
-                  className="flex items-center gap-1.5 h-[26px] px-1.5 hover:bg-[#182030] cursor-pointer text-[#DEE2F3]"
-                >
-                  {openFolders.models ? (
-                    <ChevronDown className="w-3 h-3 text-[#94A3B8]" />
-                  ) : (
-                    <ChevronRight className="w-3 h-3 text-[#94A3B8]" />
-                  )}
-                  <Folder className="w-3.5 h-3.5 text-[#94A3B8]" />
-                  <span>models/</span>
-                </div>
-
-                {openFolders.models && (
-                  <div className="pl-4 space-y-0.5 border-l border-[#1E2638] ml-2">
-                    <div className="flex items-center justify-between h-[26px] px-1.5 text-[#94A3B8] hover:bg-[#161B28] cursor-pointer">
-                      <div className="flex items-center gap-1.5 truncate">
-                        <FileText className="w-3.5 h-3.5 text-[#CB3837]" />
-                        <span>config.json</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="px-1 py-0.2 bg-[#CB3837]/20 text-[#CB3837] text-[9px]">JSON</span>
-                        <span className="text-[10px] text-[#475569]">50 lines</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between h-[26px] px-1.5 text-[#94A3B8] hover:bg-[#161B28] cursor-pointer">
-                      <div className="flex items-center gap-1.5 truncate">
-                        <FileText className="w-3.5 h-3.5 text-[#083FA1]" />
-                        <span>README.md</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="px-1 py-0.2 bg-[#083FA1]/20 text-[#083FA1] text-[9px]">MD</span>
-                        <span className="text-[10px] text-[#475569]">340 lines</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          {!sourceFiles.length && <div className="p-3 text-[11px] text-[#94A3B8]">No indexed files in the current snapshot.</div>}
+          {sourceFiles.slice(0, 250).map(file => <button key={file.id} type="button" onClick={() => { setSelectedFile(file.path); const id = Number(file.id); if (Number.isFinite(id)) onSelectFile?.(id); }} className={`w-full flex items-center gap-1.5 h-[26px] px-1.5 text-left cursor-pointer ${selectedFile === file.path ? 'bg-[#182030] text-[#00F2FE] border-l-2 border-[#00F2FE]' : 'hover:bg-[#161B28] text-[#94A3B8]'}`}><FileCode className="w-3.5 h-3.5 shrink-0" /><span className="truncate">{file.path}</span><span className="ml-auto text-[10px] text-[#475569] shrink-0">{file.lines}L</span></button>)}
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Activity, Braces, GitBranch, Network, TestTube2, TriangleAlert } from 'lucide-react'
+import { Activity, ArrowLeft, Braces, GitBranch, Network, TestTube2, TriangleAlert } from 'lucide-react'
 import { api, type Hotspot, type RepositoryFile, type TestRelationship } from '../../lib/api/client'
 import { WorkspaceHeader, WorkspacePanel, WorkspaceState } from './WorkspaceStates'
 
@@ -7,9 +7,9 @@ type SymbolRow = { id: number; kind: string; name: string; qualified_name: strin
 type DependencyRow = { target_file_id: number | null; imported_name: string; evidence: string }
 type ReverseDependencyRow = { source_file_id: number; imported_name: string; evidence: string }
 
-export interface FileDetailSourceProps { repositoryId: number | null; fileId: number | null }
+export interface FileDetailSourceProps { repositoryId: number | null; fileId: number | null; onBack?: () => void; backLabel?: string }
 
-export function FileDetailSource({ repositoryId, fileId }: FileDetailSourceProps) {
+export function FileDetailSource({ repositoryId, fileId, onBack, backLabel = 'Back' }: FileDetailSourceProps) {
   const [file, setFile] = useState<RepositoryFile | null>(null)
   const [content, setContent] = useState<string | null>(null)
   const [symbols, setSymbols] = useState<SymbolRow[]>([])
@@ -49,7 +49,7 @@ export function FileDetailSource({ repositoryId, fileId }: FileDetailSourceProps
   if (!file) return <WorkspaceState kind="loading">Loading file intelligence…</WorkspaceState>
 
   return <>
-    <WorkspaceHeader eyebrow="Repository / file intelligence" title={file.relative_path} detail={`${file.language || 'unknown'} · ${file.line_count ?? 'unknown'} lines · ${file.size_bytes} bytes · ${file.classification}`} />
+    <WorkspaceHeader eyebrow="FILE DETAIL / repository intelligence" title={file.relative_path} detail={`${file.language || 'unknown'} · ${file.line_count ?? 'unknown'} lines · ${file.size_bytes} bytes · ${file.classification}`} action={onBack ? <button className="button button-quiet" onClick={onBack}><ArrowLeft size={14} />{backLabel}</button> : undefined} />
     <div className="file-detail-rebuild-grid">
       <WorkspacePanel title="Source viewer">
         {content === null ? <WorkspaceState kind="empty">Source content is unavailable for this file.</WorkspaceState> : <div className="source-view"><div className="source-toolbar"><span>{file.relative_path}</span><span>{symbols.length} symbols</span></div>{content.split('\n').map((line, index) => <div className="source-line" key={`${index}-${line}`}><span className="line-number">{index + 1}</span><code>{line || ' '}</code></div>)}</div>}

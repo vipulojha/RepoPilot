@@ -30,6 +30,8 @@ export type NavigationPage =
   | 'history'
   | 'change-intelligence'
   | 'git-actions'
+  | 'settings'
+  | 'help'
   | 'onboarding';
 
 export interface AppSidebarProps {
@@ -186,14 +188,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
             {!collapsed && <span>Connect / Switch Repo</span>}
           </button>
           <button
-            onClick={() => onNavigate('overview')}
+            onClick={() => onNavigate('settings')}
             className="w-full flex items-center gap-2.5 h-[26px] px-2 text-[12px] text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-[#182030] transition-colors border-0 cursor-pointer bg-transparent"
           >
             <Settings className="w-3.5 h-3.5" />
             {!collapsed && <span>Settings</span>}
           </button>
           <button
-            onClick={() => onNavigate('overview')}
+            onClick={() => onNavigate('help')}
             className="w-full flex items-center gap-2.5 h-[26px] px-2 text-[12px] text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-[#182030] transition-colors border-0 cursor-pointer bg-transparent"
           >
             <HelpCircle className="w-3.5 h-3.5" />

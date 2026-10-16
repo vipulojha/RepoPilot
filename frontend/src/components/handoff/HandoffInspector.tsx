@@ -111,6 +111,20 @@ export const SCREEN_SPECS: Record<NavigationPage, {
     tokens: ['Buttons: 28px #00F2FE', 'Card bg: #111622', 'Stash ledger: #0B0E14'],
     backendNotes: 'Requires POST /api/git/commit, POST /api/git/branch, POST /api/git/stash endpoints.',
   },
+  settings: {
+    title: 'RepoPilot Settings',
+    imageRef: 'Production workspace preferences',
+    components: ['SettingsView', 'PreferenceToggle', 'WorkspacePreferences'],
+    tokens: ['Actionable: #06D6A0', 'Informational: #94A3B8', 'Surface: #111622'],
+    backendNotes: 'Local browser preferences only; server-side settings are intentionally not represented until supported.',
+  },
+  help: {
+    title: 'Help & Shortcuts Knowledge Center',
+    imageRef: 'Production guidance workspace',
+    components: ['HelpView', 'SearchableQA', 'ShortcutReference', 'GitCommandCheatSheet'],
+    tokens: ['Search: #00F2FE', 'Warning: #FFB703', 'Error: #EF476F'],
+    backendNotes: 'Static in-app guidance tied to implemented RepoPilot controls and supported Git workflows.',
+  },
   onboarding: {
     title: 'Repository Connection & Onboarding',
     imageRef: 'Requirement: Onboarding UI',

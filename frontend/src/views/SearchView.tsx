@@ -14,11 +14,12 @@ import { api, type SearchHit } from '../lib/api/client';
 
 export const SearchView: React.FC<{ repositoryId?: number | null; onSelectFile?: (id:number) => void }> = ({ repositoryId, onSelectFile }) => {
   const [activeTab, setActiveTab] = useState<'all' | 'files' | 'symbols' | 'tests'>('all');
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(() => sessionStorage.getItem('repopilot.search.query') ?? '');
   const [liveResults, setLiveResults] = useState<SearchHit[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
   useEffect(() => {
+    sessionStorage.setItem('repopilot.search.query', query);
     if (!repositoryId || !query.trim()) { setLiveResults([]); setSearchError(''); setSearching(false); return; }
     const timer = window.setTimeout(() => {
       setSearching(true); setSearchError('');

@@ -50,11 +50,13 @@ import { HistoryView } from './views/HistoryView'
 import { ChangeIntelligenceView } from './views/ChangeIntelligenceView'
 import { GitActionsView } from './views/GitActionsView'
 import { OnboardingView } from './views/OnboardingView'
+import { SettingsView } from './views/SettingsView'
+import { HelpView } from './views/HelpView'
 
 type Page =
   | 'Dashboard' | 'Files' | 'File Detail' | 'Search' | 'Dependency Graph' | 'Dependency Atlas' | 'Impact Analysis'
   | 'Hotspots' | 'Tests' | 'Status' | 'Change Intelligence' | 'Git Actions' | 'Stash'
-  | 'History' | 'Commit Detail' | 'File History' | 'Compare' | 'Onboarding'
+  | 'History' | 'Commit Detail' | 'File History' | 'Compare' | 'Settings' | 'Help & Shortcuts' | 'Onboarding'
 
 type EntryMode = 'local' | 'github' | 'file'
 
@@ -65,11 +67,12 @@ const pageGroups = [
 ]
 
 function App() {
-  const [page, setPage] = useState<Page>(() => Number(localStorage.getItem('repopilot.repositoryId')) ? 'Dashboard' : 'Onboarding')
+  const [page, setPage] = useState<Page>(() => Number(localStorage.getItem('repopilot.repositoryId')) ? (readLandingView() as Page) : 'Onboarding')
   const [repositories, setRepositories] = useState<Repository[]>([])
-  const [repositoryId, setRepositoryId] = useState<number | null>(() => Number(localStorage.getItem('repopilot.repositoryId')) || null)
+  const [repositoryId, setRepositoryId] = useState<number | null>(() => readPreferences().rememberRepository ? Number(localStorage.getItem('repopilot.repositoryId')) || null : null)
   const [selectedFileId, setSelectedFileId] = useState<number | null>(null)
   const [selectedCommit, setSelectedCommit] = useState<string | null>(null)
+  const [viewHistory, setViewHistory] = useState<Array<{ page: Page; selectedFileId: number | null; selectedCommit: string | null }>>([])
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [repositoryMenuOpen, setRepositoryMenuOpen] = useState(false)
@@ -78,7 +81,9 @@ function App() {
   const [feedback, setFeedback] = useState('')
   const repositoryMenuRef = useRef<HTMLDivElement>(null)
   const selectedRepository = repositories.find(repository => repository.id === repositoryId) ?? null
-  const handoffPage: NavigationPage = page === 'Dashboard' ? 'overview' : page === 'Files' ? 'files' : page === 'Search' ? 'search' : page === 'Dependency Graph' ? 'dependency-graph' : page === 'Dependency Atlas' ? 'dependency-atlas' : page === 'Impact Analysis' ? 'impact-analysis' : page === 'Hotspots' ? 'hotspots' : page === 'Tests' ? 'tests' : page === 'History' ? 'history' : page === 'Change Intelligence' ? 'change-intelligence' : page === 'Git Actions' ? 'git-actions' : page === 'Onboarding' ? 'onboarding' : 'overview'
+  const handoffPage: NavigationPage = page === 'Dashboard' ? 'overview' : page === 'Files' || page === 'File Detail' ? 'files' : page === 'Search' ? 'search' : page === 'Dependency Graph' ? 'dependency-graph' : page === 'Dependency Atlas' ? 'dependency-atlas' : page === 'Impact Analysis' ? 'impact-analysis' : page === 'Hotspots' ? 'hotspots' : page === 'Tests' ? 'tests' : page === 'History' ? 'history' : page === 'Change Intelligence' ? 'change-intelligence' : page === 'Git Actions' ? 'git-actions' : page === 'Settings' ? 'settings' : page === 'Help & Shortcuts' ? 'help' : page === 'Onboarding' ? 'onboarding' : 'overview'
+  const currentViewTitle = page === 'Dashboard' ? 'OVERVIEW' : page === 'File Detail' ? 'FILE DETAIL' : page === 'Dependency Graph' ? 'DEPENDENCY GRAPH' : page === 'Dependency Atlas' ? 'DEPENDENCY ATLAS' : page === 'Impact Analysis' ? 'IMPACT ANALYSIS' : page === 'Change Intelligence' ? 'CHANGE INTELLIGENCE' : page === 'Git Actions' ? 'GIT ACTIONS' : page === 'Help & Shortcuts' ? 'HELP & SHORTCUTS' : page.toUpperCase()
+  const backLabel = viewHistory[viewHistory.length - 1]?.page === 'Files' ? 'Back to Files' : viewHistory[viewHistory.length - 1]?.page === 'Dependency Graph' ? 'Back to Dependency Graph' : viewHistory[viewHistory.length - 1]?.page === 'Search' ? 'Back to Search' : viewHistory[viewHistory.length - 1]?.page === 'History' ? 'Back to History' : 'Back'
 
   useEffect(() => {
     api.repositories().then(result => {
@@ -122,8 +127,21 @@ function App() {
   }
 
   const selectFile = (fileId: number) => {
+    setViewHistory(history => [...history, { page, selectedFileId, selectedCommit }])
     setSelectedFileId(fileId)
     setPage('File Detail')
+  }
+
+  const goBack = () => {
+    const previous = viewHistory[viewHistory.length - 1]
+    if (!previous) {
+      setPage('Dashboard')
+      return
+    }
+    setViewHistory(history => history.slice(0, -1))
+    setPage(previous.page)
+    setSelectedFileId(previous.selectedFileId ?? selectedFileId)
+    setSelectedCommit(previous.selectedCommit)
   }
 
   const rescan = async () => {
@@ -140,6 +158,7 @@ function App() {
   const finishOnboarding = async (repository: Repository, focus?: string) => {
     setRepositories(current => current.some(item => item.id === repository.id) ? current : [...current, repository])
     setRepositoryId(repository.id)
+    let openedFocusedFile = false
     try {
       const scan = await api.latestScan(repository.id).catch(() => api.startScan(repository.id))
       if (focus && scan.status === 'ready') {
@@ -147,7 +166,9 @@ function App() {
         const relative = focus.replace(repository.path, '').replace(/^[/\\]+/, '').replace(/\\/g, '/')
         const file = files.items.find(item => item.relative_path === relative)
         if (file) {
+          openedFocusedFile = true
           setSelectedFileId(file.id)
+          setViewHistory(history => [...history, { page: 'Onboarding', selectedFileId: null, selectedCommit: null }])
           setPage('File Detail')
         }
       }
@@ -155,7 +176,7 @@ function App() {
       // Registration succeeded even if the first scan is not immediately available.
     }
     setOnboardingOpen(false)
-    setPage(current => current === 'Onboarding' ? 'Dashboard' : current)
+    setPage(current => current === 'Onboarding' && !openedFocusedFile ? 'Dashboard' : current)
     setFeedback(`Connected ${repository.name}.`)
     window.setTimeout(() => setFeedback(''), 3500)
   }
@@ -167,6 +188,11 @@ function App() {
       return
     }
     setPage(nextPage as Page)
+    if (nextPage === 'Settings' || nextPage === 'Help & Shortcuts') {
+      setViewHistory(history => [...history, { page, selectedFileId, selectedCommit }])
+    } else {
+      setViewHistory([])
+    }
     setPaletteOpen(false)
     setRepositoryMenuOpen(false)
   }
@@ -181,14 +207,16 @@ function App() {
     setSelectedCommit,
     selectFile,
     onStartOnboarding: () => openOnboarding(),
-  }), [page, selectedRepository, repositoryId, selectedFileId, selectedCommit])
+    onBack: goBack,
+    backLabel,
+  }), [page, selectedRepository, repositoryId, selectedFileId, selectedCommit, backLabel])
 
   return <>
     <div className="flex flex-col h-screen w-screen bg-[#0B0E14] text-[#DEE2F3] overflow-hidden select-none">
       <div className="flex-1 flex overflow-hidden">
-        <AppSidebar currentPage={handoffPage} activeRepo={selectedRepository?.name ?? 'No repository'} activeBranch={selectedRepository?.branch ?? 'no branch'} onNavigate={next => navigate(next === 'overview' ? 'Dashboard' : next === 'files' ? 'Files' : next === 'search' ? 'Search' : next === 'dependency-graph' ? 'Dependency Graph' : next === 'dependency-atlas' ? 'Dependency Atlas' : next === 'impact-analysis' ? 'Impact Analysis' : next === 'change-intelligence' ? 'Change Intelligence' : next === 'git-actions' ? 'Git Actions' : next === 'onboarding' ? 'Onboarding' : next[0].toUpperCase() + next.slice(1))} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(value => !value)} />
+        <AppSidebar currentPage={handoffPage} activeRepo={selectedRepository?.name ?? 'No repository'} activeBranch={selectedRepository?.branch ?? 'no branch'} onNavigate={next => navigate(next === 'overview' ? 'Dashboard' : next === 'files' ? 'Files' : next === 'search' ? 'Search' : next === 'dependency-graph' ? 'Dependency Graph' : next === 'dependency-atlas' ? 'Dependency Atlas' : next === 'impact-analysis' ? 'Impact Analysis' : next === 'change-intelligence' ? 'Change Intelligence' : next === 'git-actions' ? 'Git Actions' : next === 'settings' ? 'Settings' : next === 'help' ? 'Help & Shortcuts' : next === 'onboarding' ? 'Onboarding' : next[0].toUpperCase() + next.slice(1))} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(value => !value)} />
         <div className="flex-1 flex flex-col overflow-hidden bg-[#0B0E14]">
-          <AppHeader currentViewTitle={handoffPage} activeRepo={selectedRepository?.name ?? 'No repository'} activeBranch={selectedRepository?.branch ?? 'no branch'} onOpenCommandPalette={() => setPaletteOpen(true)} onRescan={() => void rescan()} onSwitchRepo={() => openOnboarding()} />
+          <AppHeader currentViewTitle={currentViewTitle} activeRepo={selectedRepository?.name ?? 'No repository'} activeBranch={selectedRepository?.branch ?? 'no branch'} onOpenCommandPalette={() => setPaletteOpen(true)} onRescan={() => void rescan()} onSwitchRepo={() => openOnboarding()} />
           <main className="flex-1 overflow-auto relative">
             <div className="rp-workspace-wrap">
         {feedback && <div className="rp-feedback" role="status"><Activity size={14} />{feedback}<button onClick={() => setFeedback('')} aria-label="Dismiss feedback"><X size={14} /></button></div>}
@@ -222,7 +250,7 @@ function CommandPalette({ onClose, onNavigate, onOpenOnboarding }: { onClose: ()
   return <div className="rp-palette-backdrop" onMouseDown={onClose}><div className="rp-palette" role="dialog" aria-modal="true" aria-label="Command palette" onMouseDown={event => event.stopPropagation()}><div className="rp-palette-search"><Search size={16} /><input autoFocus value={query} onChange={event => setQuery(event.target.value)} placeholder="Jump to a workspace or action…" /><kbd>ESC</kbd></div><div className="rp-palette-body">{filtered.length ? filtered.map(command => <button key={command.page} className="rp-palette-row" onClick={() => { command.page === 'Onboarding' ? onOpenOnboarding() : onNavigate(command.page); onClose() }}><command.icon size={15} /><span><strong>{command.page}</strong><small>{command.group}</small></span><kbd>↵</kbd></button>) : <div className="rp-palette-empty">No matching workspace.</div>}</div><footer><span>↑↓ Navigate</span><span>↵ Open</span><span>Esc Close</span><span><Command size={11} /> K</span></footer></div></div>
 }
 
-function renderPage({ page, repository, repositoryId, selectedFileId, selectedCommit, setPage, setSelectedCommit, selectFile, onStartOnboarding }: {
+function renderPage({ page, repository, repositoryId, selectedFileId, selectedCommit, setPage, setSelectedCommit, selectFile, onStartOnboarding, onBack, backLabel }: {
   page: Page
   repository: Repository | null
   repositoryId: number | null
@@ -232,14 +260,16 @@ function renderPage({ page, repository, repositoryId, selectedFileId, selectedCo
   setSelectedCommit: (sha: string) => void
   selectFile: (fileId: number) => void
   onStartOnboarding: () => void
+  onBack: () => void
+  backLabel: string
 }) {
   const handoff = (render: (data: import('./lib/handoffData').HandoffData) => React.ReactNode) => <HandoffDataBoundary repositoryId={repositoryId}>{render}</HandoffDataBoundary>
   switch (page) {
     case 'Dashboard': return handoff(() => <CockpitView onNavigate={next => setPage(next as Page)} />)
-    case 'Files': return handoff(() => <FilesView onSelectFile={selectFile} />)
-    case 'File Detail': return <FileDetailSource repositoryId={repositoryId} fileId={selectedFileId} />
+    case 'Files': return handoff(() => <FilesView onSelectFile={selectFile} selectedFileId={selectedFileId} />)
+    case 'File Detail': return <FileDetailSource repositoryId={repositoryId} fileId={selectedFileId} onBack={onBack} backLabel={backLabel} />
     case 'Search': return handoff(() => <SearchView repositoryId={repositoryId} onSelectFile={selectFile} />)
-    case 'Dependency Graph': return handoff(() => <DependencyGraphView />)
+    case 'Dependency Graph': return handoff(() => <DependencyGraphView onSelectFile={selectFile} />)
     case 'Dependency Atlas': return handoff(() => <DependencyAtlasView />)
     case 'Impact Analysis': return handoff(() => <ImpactAnalysisView repositoryId={repositoryId} selectedFileId={selectedFileId} />)
     case 'Hotspots': return handoff(() => <HotspotsView onAnalyzeImpact={() => setPage('Impact Analysis')} />)
@@ -248,13 +278,29 @@ function renderPage({ page, repository, repositoryId, selectedFileId, selectedCo
     case 'Change Intelligence': return handoff(() => <ChangeIntelligenceView />)
     case 'Git Actions': return handoff(() => <GitActionsView repositoryId={repositoryId} />)
     case 'Stash': return <GitActionsPanel repositoryId={repositoryId} />
-    case 'History': return handoff(() => <HistoryView />)
+    case 'History': return handoff(() => <HistoryView onSelectFile={selectFile} />)
     case 'Commit Detail': return <CommitDetailPanel repositoryId={repositoryId} sha={selectedCommit} />
     case 'File History': return <FileHistoryPanel repositoryId={repositoryId} fileId={selectedFileId} />
     case 'Compare': return <CompareWorkspace repositoryId={repositoryId} />
     case 'Onboarding': return <OnboardingView onComplete={onStartOnboarding} />
+    case 'Settings': return <SettingsView onBack={onBack} />
+    case 'Help & Shortcuts': return <HelpView onBack={onBack} />
     default: return <RepositoryCockpit repository={repository} />
   }
+}
+
+function readPreferences(): { rememberRepository: boolean; landingView: string } {
+  try {
+    const value = JSON.parse(localStorage.getItem('repopilot.preferences') || '{}')
+    return { rememberRepository: value.rememberRepository !== false, landingView: typeof value.landingView === 'string' ? value.landingView : 'Dashboard' }
+  } catch {
+    return { rememberRepository: true, landingView: 'Dashboard' }
+  }
+}
+
+function readLandingView() {
+  const landingView = readPreferences().landingView
+  return ['Dashboard', 'Files', 'Dependency Graph', 'History'].includes(landingView) ? landingView : 'Dashboard'
 }
 
 function CompareWorkspace({ repositoryId }: { repositoryId: number | null }) {
