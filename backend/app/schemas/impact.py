@@ -24,8 +24,21 @@ class ImpactItem(BaseModel):
     dependency_path: list[ImpactPathNode]
     evidence: list[ImpactEvidence]
 
+class ImpactTestValidation(BaseModel):
+    file_id: int
+    file_path: str
+    test_file_id: int | None = None
+    test_path: str | None = None
+    status: str
+    tag: str
+    cases: str
+    detail: str
+    type: str
+    evidence_level: str | None = None
+
 class ImpactResponse(BaseModel):
     snapshot_id: int
     changed_roots: list[ImpactPathNode]
     affected_files: list[ImpactItem]
     counts: dict[str, int]
+    test_validation: list[ImpactTestValidation] = Field(default_factory=list)

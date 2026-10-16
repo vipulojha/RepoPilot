@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.db.models import Repository, RepositoryFile, ScanSnapshot
 from app.schemas.impact import ImpactRequest, ImpactResponse, ImpactPathNode
-from app.services.impact import analyze_impact
+from app.services.impact import analyze_impact, build_test_validation
 from app.services.scans import latest_ready
 
 router = APIRouter(prefix="/repositories/{repository_id}/impact", tags=["impact"])
@@ -18,4 +18,5 @@ def impact(repository_id: int, payload: ImpactRequest, db: Session = Depends(get
     if len(files) != len(set(payload.changed_file_ids)): raise HTTPException(404, "Changed file not found")
     roots = [ImpactPathNode(file_id=file_id, path=files[file_id].relative_path) for file_id in sorted(files)]
     items = analyze_impact(db, snapshot.id, list(files), payload.max_depth)
-    return ImpactResponse(snapshot_id=snapshot.id, changed_roots=roots, affected_files=items, counts={"changed": len(roots), "affected": len(items), "direct": sum(item.depth == 1 for item in items), "transitive": sum(item.depth > 1 for item in items)})
+    test_validation, test_count, hotspot_count = build_test_validation(db, snapshot.id, [*files, *(item.file_id for item in items)])
+    return ImpactResponse(snapshot_id=snapshot.id, changed_roots=roots, affected_files=items, counts={"changed": len(roots), "affected": len(items), "direct": sum(item.depth == 1 for item in items), "transitive": sum(item.depth > 1 for item in items), "tests": test_count, "hazards": hotspot_count}, test_validation=test_validation)

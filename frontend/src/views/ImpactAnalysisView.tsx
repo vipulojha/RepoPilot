@@ -23,6 +23,7 @@ export const ImpactAnalysisView: React.FC<{ repositoryId: number | null; selecte
   const items = state.data?.affected_files ?? [];
   const direct = items.filter(item => item.depth === 1);
   const transitive = items.filter(item => item.depth > 1);
+  const testValidation = state.data?.test_validation ?? [];
   const root = state.data?.changed_roots[0];
   const count = (name: string, fallback: number) => state.data?.counts[name] ?? fallback;
   const empty = <div className="p-3 bg-[#111622] border border-[#1E2638] text-[11px] text-[#94A3B8]">No data returned for this stage.</div>;
@@ -238,7 +239,17 @@ export const ImpactAnalysisView: React.FC<{ repositoryId: number | null; selecte
             </div>
 
             <div className="space-y-4">
-              {state.error ? <div className="text-[11px] text-[#EF476F]">{state.error}</div> : empty}
+              {state.error ? <div className="text-[11px] text-[#EF476F]">{state.error}</div> : state.loading ? <div className="text-[11px] text-[#94A3B8]">Loading test validation…</div> : testValidation.length ? testValidation.map((validation, idx) => {
+                const color = validation.type === 'passing' ? '#06D6A0' : validation.type === 'error' ? '#EF476F' : '#FFB703';
+                return <div key={`${validation.file_id}-${validation.test_file_id ?? idx}`} className="p-3 bg-[#111622] border transition-colors" style={{ borderColor: `${color}66` }}>
+                  <div className="flex items-center justify-between mb-1 gap-2">
+                    <span className="font-mono text-[12px] font-semibold text-[#F1F5F9] truncate">{validation.test_path ?? validation.file_path}</span>
+                    <span className="px-1.5 py-0.2 text-[9px] uppercase font-bold whitespace-nowrap" style={{ backgroundColor: `${color}26`, color }}>{validation.tag}</span>
+                  </div>
+                  <div className="text-[11px]" style={{ color }}>{validation.status} • {validation.cases}</div>
+                  <div className="text-[10px] text-[#94A3B8] mt-1">{validation.detail}</div>
+                </div>;
+              }) : empty}
             </div>
           </div>
         </div>
@@ -277,7 +288,7 @@ export const ImpactAnalysisView: React.FC<{ repositoryId: number | null; selecte
           </div>
 
           <Button variant="primary" size="sm" disabled>
-            Test relationships are API-scoped
+            Static links • runtime coverage unavailable
           </Button>
         </div>
       </div>
