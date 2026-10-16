@@ -7,7 +7,7 @@ RUN npm ci
 COPY frontend/ ./
 RUN npm run build
 
-FROM python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1 AS python-deps
+FROM python:3.12-slim@sha256:2b4f19dae3a777dfc3b76730bda1e82e1f66ab2a2686fa93ca78edbfb4f04ffe AS python-deps
 WORKDIR /build/backend
 COPY backend/pyproject.toml backend/uv.lock ./
 RUN apt-get update \
@@ -18,7 +18,7 @@ RUN apt-get update \
     && python -m pip install --no-cache-dir --target /opt/python-deps --requirement /tmp/requirements.txt \
     && rm -rf /root/.cache /tmp/requirements.txt /var/lib/apt/lists/*
 
-FROM python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1 AS runtime
+FROM python:3.12-slim@sha256:2b4f19dae3a777dfc3b76730bda1e82e1f66ab2a2686fa93ca78edbfb4f04ffe AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     APP_ENV=production \
@@ -33,6 +33,17 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/* \
     && python -m pip uninstall -y pip \
     && rm -rf /root/.cache /usr/local/bin/pip /usr/local/bin/pip3 /usr/local/lib/python3.12/site-packages/pip /usr/local/lib/python3.12/site-packages/pip-*.dist-info
+RUN set -eux; \
+    if expat_status="$(dpkg-query -W -f='${Status}' libexpat1 2>/dev/null)"; then \
+        test "$expat_status" = 'install ok installed'; \
+        expat_version="$(dpkg-query -W -f='${Version}' libexpat1)"; \
+        dpkg --compare-versions "$expat_version" ge '2.9.0-1~deb13u1'; \
+        printf 'Verified libexpat1=%s\\n' "$expat_version"; \
+    else \
+        printf 'Verified libexpat1 is not installed\\n'; \
+    fi; \
+    zlib_version="$(dpkg-query -W -f='${Version}' zlib1g)"; \
+    printf 'Verified zlib1g=%s (no fixed Debian release reported)\\n' "$zlib_version"
 RUN useradd --create-home --uid 10001 repopilot \
     && mkdir -p /app/data /app/frontend/dist \
     && chown -R repopilot:repopilot /app

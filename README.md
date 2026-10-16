@@ -130,14 +130,19 @@ non-root user. The initial image build needs network access to download base
 images and packages; the runtime uses the frozen environment from the image and
 does not re-sync dependencies on startup.
 
-The runtime image intentionally keeps Debian's `git` package because repository
-onboarding, Git status, history, compare, and Git actions invoke the `git`
-executable. It does not keep `uv`, pip, compilers, headers, or Python build
-dependencies. The current Debian security repository supplies the fixed expat
-package (`libexpat1` 2.9.0-1~deb13u1). Docker Scout currently reports zlib with
-no available fixed release; RepoPilot does not expose archive/decompression
-processing, so the runtime keeps only the Python/SQLite zlib dependency. Debian's
-tar package is retained because dpkg depends on it in the supported slim base.
+The runtime image uses the current pinned `python:3.12-slim` Debian base. It
+keeps Debian's `git` package because repository onboarding, Git status, history,
+compare, and Git actions invoke the `git` executable. It does not keep `uv`,
+pip, compilers, headers, or Python build dependencies. The Dockerfile fails the
+build if an installed `libexpat1` is older than `2.9.0-1~deb13u1`; the final
+image verifies `libexpat1=2.9.0-1~deb13u1`. Docker Scout currently reports zlib
+with no available fixed release. `zlib1g` cannot be removed without breaking
+Python's `zlib` extension and the Git executable, both of which link to
+`libz.so.1`; this is not hidden with a scanner exclusion. RepoPilot has no
+application-level calls to `gzwrite`, `gzprintf`, or `gzvprintf`, the vulnerable
+non-blocking `gz_*` path in CVE-2026-85091, and its scanner processes source
+files rather than archives. Debian's tar package is retained because dpkg
+depends on it in the supported slim base.
 
 ```bash
 docker build -t repopilot:local .
@@ -154,6 +159,32 @@ The container serves the UI and API at `http://127.0.0.1:3000`. Check it with:
 curl http://127.0.0.1:3000/api/v1/health
 docker ps
 docker logs repopilot-local
+```
+
+For the security verification requested for the release image, run:
+
+```bash
+docker run --rm repopilot:high-fixed sh -c '
+  set -eu
+  status="$(dpkg-query -W -f="${Status}" libexpat1 2>/dev/null || true)"
+  if [ "$status" = "install ok installed" ]; then
+    version="$(dpkg-query -W -f="${Version}" libexpat1)"
+    dpkg --compare-versions "$version" ge "2.9.0-1~deb13u1"
+    printf "libexpat1=%s\\n" "$version"
+  else
+    printf "libexpat1=not-installed\\n"
+  fi
+  dpkg-query -W -f="zlib1g=${Version}\\n" zlib1g
+  python -c "import zlib; print(\"python-zlib=available\")"
+'
+```
+
+The release build and scan commands are:
+
+```bash
+docker build --pull -t repopilot:high-fixed .
+docker scout cves repopilot:high-fixed
+docker scout quickview repopilot:high-fixed
 ```
 
 Register `/workspace` through the onboarding UI or API to scan the mounted
