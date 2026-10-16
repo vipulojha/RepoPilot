@@ -34,6 +34,9 @@ import {
   ObsidianTelemetryShell,
 } from './components/rebuild'
 import './components/rebuild/rebuild.css'
+import { AppSidebar, type NavigationPage } from './components/layout/AppSidebar'
+import { AppHeader } from './components/layout/AppHeader'
+import { CommandPalette as HandoffCommandPalette } from './components/modals/CommandPalette'
 
 const WelcomeExperience = lazy(() => import('./components/welcome/WelcomeExperience').then(module => ({ default: module.WelcomeExperience })))
 
@@ -64,6 +67,7 @@ function App() {
   const [feedback, setFeedback] = useState('')
   const repositoryMenuRef = useRef<HTMLDivElement>(null)
   const selectedRepository = repositories.find(repository => repository.id === repositoryId) ?? null
+  const handoffPage: NavigationPage = page === 'Dashboard' ? 'overview' : page === 'Files' ? 'files' : page === 'Search' ? 'search' : page === 'Dependency Graph' ? 'dependency-graph' : page === 'Impact Analysis' ? 'impact-analysis' : page === 'Hotspots' ? 'hotspots' : page === 'Tests' ? 'tests' : page === 'History' ? 'history' : page === 'Change Intelligence' ? 'change-intelligence' : page === 'Git Actions' ? 'git-actions' : page === 'Onboarding' ? 'onboarding' : 'overview'
 
   useEffect(() => {
     api.repositories().then(result => {
@@ -146,6 +150,7 @@ function App() {
 
   const navigate = (nextPage: string) => {
     if (nextPage === 'Onboarding') {
+      setPage('Onboarding')
       openOnboarding()
       return
     }
@@ -170,24 +175,23 @@ function App() {
   }
 
   return <>
-    <ObsidianTelemetryShell
-      repository={selectedRepository ?? undefined}
-      currentPage={page}
-      onNavigate={navigate}
-      sidebarCollapsed={sidebarCollapsed}
-      onToggleSidebar={() => setSidebarCollapsed(value => !value)}
-      onRepositoryPopover={() => setRepositoryMenuOpen(value => !value)}
-      onCommandPalette={() => setPaletteOpen(true)}
-      onRescan={() => void rescan()}
-    >
-      <div className="rp-workspace-wrap">
+    <div className="flex flex-col h-screen w-screen bg-[#0B0E14] text-[#DEE2F3] overflow-hidden select-none">
+      <div className="flex-1 flex overflow-hidden">
+        <AppSidebar currentPage={handoffPage} onNavigate={next => navigate(next === 'overview' ? 'Dashboard' : next === 'files' ? 'Files' : next === 'search' ? 'Search' : next === 'dependency-graph' || next === 'dependency-atlas' ? 'Dependency Graph' : next === 'impact-analysis' ? 'Impact Analysis' : next === 'change-intelligence' ? 'Change Intelligence' : next === 'git-actions' ? 'Git Actions' : next === 'onboarding' ? 'Onboarding' : next[0].toUpperCase() + next.slice(1))} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(value => !value)} />
+        <div className="flex-1 flex flex-col overflow-hidden bg-[#0B0E14]">
+          <AppHeader currentViewTitle={handoffPage} activeRepo={selectedRepository?.name ?? 'repo-pilot'} activeBranch={selectedRepository?.branch ?? 'main'} onOpenCommandPalette={() => setPaletteOpen(true)} onRescan={() => void rescan()} onSwitchRepo={() => openOnboarding()} />
+          <main className="flex-1 overflow-auto relative">
+            <div className="rp-workspace-wrap">
         {feedback && <div className="rp-feedback" role="status"><Activity size={14} />{feedback}<button onClick={() => setFeedback('')} aria-label="Dismiss feedback"><X size={14} /></button></div>}
         {view}
+            </div>
+          </main>
+        </div>
       </div>
-    </ObsidianTelemetryShell>
     {repositoryMenuOpen && <RepositoryPopover repositories={repositories} activeId={repositoryId} anchorRef={repositoryMenuRef} onSelect={id => { setRepositoryId(id); setPage('Dashboard'); setRepositoryMenuOpen(false) }} onAdd={() => { setRepositoryMenuOpen(false); openOnboarding() }} />}
-    {paletteOpen && <CommandPalette onClose={() => setPaletteOpen(false)} onNavigate={navigate} onOpenOnboarding={openOnboarding} />}
+    {paletteOpen && <HandoffCommandPalette isOpen={paletteOpen} onClose={() => setPaletteOpen(false)} onNavigate={next => navigate(next)} onRescan={() => void rescan()} onExportMatrix={() => setFeedback('Dependency matrix export is available from the graph view.')} />}
     {onboardingOpen && <OnboardingOverlay mode={onboardingMode} onComplete={finishOnboarding} onClose={() => setOnboardingOpen(false)} />}
+    </div>
   </>
 }
 
