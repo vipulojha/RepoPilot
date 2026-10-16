@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-base: #0B0E14;
+    --surface-panel: #111622;
+    --surface-card: #182030;
+    --surface-high: #252a37;
+    --outline-razor: #1E2638;
+    --outline-contrast: #2D3A54;
+    
+    --cyan: #00F2FE;
+    --violet: #9D4EDD;
+    --amber: #FFB703;
+    --emerald: #06D6A0;
+    --crimson: #EF476F;
+
+    --font-headline: 'Space Grotesk', -apple-system, sans-serif;
+    --font-body: 'Geist', -apple-system, sans-serif;
+    --font-code: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    background-color: #0B0E14;
+    color: #DEE2F3;
+    font-family: var(--font-body);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+.font-headline {
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.font-sans-geist {
+  font-family: 'Geist', sans-serif;
+}
+
+.font-code {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom terminal grid background */
+.bg-circuit-grid {
+  background-size: 24px 24px;
+  background-image: 
+    linear-gradient(to right, rgba(30, 38, 56, 0.4) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(30, 38, 56, 0.4) 1px, transparent 1px);
+}
+
+.bg-circuit-grid-dense {
+  background-size: 16px 16px;
+  background-image: 
+    linear-gradient(to right, rgba(30, 38, 56, 0.6) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(30, 38, 56, 0.6) 1px, transparent 1px);
+}
+
+.bg-dot-matrix {
+  background-image: radial-gradient(rgba(0, 242, 254, 0.15) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* Custom razor scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0B0E14;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1E2638;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2D3A54;
+}
+
+/* Pulsing signal glow */
+@keyframes signalGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 4px rgba(0, 242, 254, 0.4));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px rgba(0, 242, 254, 0.8));
+  }
+}
+
+.animate-signal-glow {
+  animation: signalGlow 2.5s infinite ease-in-out;
+}
+
+@keyframes signalFlow {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-signal-flow {
+  stroke-dasharray: 6 4;
+  animation: signalFlow 2s linear infinite;
+}

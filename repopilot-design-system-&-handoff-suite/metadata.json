@@ -1,0 +1,6 @@
+{
+  "name": "RepoPilot Design System & Handoff Suite",
+  "description": "Production-ready frontend design handoff package, component library, and interactive screens for RepoPilot codebase intelligence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

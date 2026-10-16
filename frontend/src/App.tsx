@@ -1,325 +1,250 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import {
-  Activity, ArrowDownLeft, ArrowUpRight, Bell, Braces, ChevronDown, ChevronRight,
-  Command, Database, FileCode2, Folder, GitBranch, Hash, LayoutDashboard,
-  ListTree, Maximize2, Menu, Network, PanelLeft, Play, Search, ShieldCheck,
-  Sparkles, Terminal, TestTube2, TriangleAlert, X, Upload, Download, RefreshCw, GitCommitHorizontal,
+  Activity,
+  Command,
+  GitBranch,
+  LayoutDashboard,
+  Network,
+  Search,
+  Settings2,
+  Terminal,
+  X,
 } from 'lucide-react'
-import { api, Repository, RepositoryFile, Scan } from './lib/api/client'
-import { Background, Controls, MiniMap, ReactFlow } from '@xyflow/react'
-import '@xyflow/react/dist/style.css'
+import { api, type Repository } from './lib/api/client'
+import {
+  DependencyGraphWorkspace,
+  FileDetailSource,
+  FilesExplorer,
+  GitActionsPanel,
+  GitStatusPanel,
+  ChangeIntelligencePanel,
+  HistoryPanel,
+  CommitDetailPanel,
+  FileHistoryPanel,
+  ComparePanel,
+  HotspotsWorkspace,
+  ImpactWorkspace,
+  OnboardingPanel,
+  RepositoryCockpit,
+  SearchWorkspace,
+  TestsWorkspace,
+  WorkspaceHeader,
+  WorkspacePanel,
+  WorkspaceState,
+  ObsidianTelemetryShell,
+} from './components/rebuild'
+import './components/rebuild/rebuild.css'
+import './components/rebuild/app.css'
+
 const WelcomeExperience = lazy(() => import('./components/welcome/WelcomeExperience').then(module => ({ default: module.WelcomeExperience })))
 
-type Page = 'Dashboard' | 'Files' | 'File Detail' | 'Dependency Graph' | 'Search' | 'Impact Analysis' | 'Change Intelligence' | 'Hotspots' | 'Tests' | 'History' | 'Commit Detail' | 'Git Actions'
+type Page =
+  | 'Dashboard' | 'Files' | 'File Detail' | 'Search' | 'Dependency Graph' | 'Impact Analysis'
+  | 'Hotspots' | 'Tests' | 'Status' | 'Change Intelligence' | 'Git Actions' | 'Stash'
+  | 'History' | 'Commit Detail' | 'File History' | 'Compare' | 'Onboarding'
 
-const nav = [
-  { label: 'REPOSITORY', items: [{ label: 'Dashboard', icon: LayoutDashboard }, { label: 'Files', icon: Folder }, { label: 'Search', icon: Search }] },
-  { label: 'INTELLIGENCE', items: [{ label: 'Dependency Graph', icon: Network }, { label: 'Impact Analysis', icon: Activity }, { label: 'Hotspots', icon: TriangleAlert }, { label: 'Tests', icon: TestTube2 }] },
-  { label: 'GIT', items: [{ label: 'History', icon: GitBranch }, { label: 'Change Intelligence', icon: GitBranch }, { label: 'Git Actions', icon: GitCommitHorizontal }] },
-]
+type EntryMode = 'local' | 'github' | 'file'
 
-const files = [
-  { name: 'AuthService.ts', path: 'src/auth/AuthService.ts', type: 'ts', meta: '4.8 KB', selected: true },
-  { name: 'AuthController.ts', path: 'src/auth/AuthController.ts', type: 'ts', meta: '3.1 KB' },
-  { name: 'SessionManager.ts', path: 'src/session/SessionManager.ts', type: 'ts', meta: '2.7 KB' },
-  { name: 'LoginPage.tsx', path: 'src/ui/LoginPage.tsx', type: 'tsx', meta: '6.4 KB' },
-  { name: 'UserRepository.ts', path: 'src/users/UserRepository.ts', type: 'ts', meta: '1.9 KB' },
-  { name: 'auth.test.ts', path: 'tests/auth.test.ts', type: 'test', meta: '3.3 KB' },
-]
-
-const impactGroups = [
-  { title: 'Direct dependents', count: 3, tone: 'cyan', items: [
-    ['AuthController.ts', 'Imports AuthService', 'src/auth/AuthController.ts', 'high'],
-    ['SessionManager.ts', 'Imports AuthService', 'src/session/SessionManager.ts', 'high'],
-    ['AuthMiddleware.ts', 'Uses AuthService', 'src/auth/AuthMiddleware.ts', 'high'],
-  ] },
-  { title: 'Potentially affected', count: 4, tone: 'violet', items: [
-    ['LoginPage.tsx', 'Depends on AuthController', 'src/ui/LoginPage.tsx', 'medium'],
-    ['UserService.ts', 'Depends on SessionManager', 'src/users/UserService.ts', 'medium'],
-  ] },
-  { title: 'Tests', count: 2, tone: 'amber', items: [
-    ['auth.test.ts', 'Referenced by test', 'tests/auth.test.ts', 'high'],
-    ['session.test.ts', 'Covers SessionManager', 'tests/session.test.ts', 'medium'],
-  ] },
-]
-
-const codeLines = [
-  ['1', "import { SessionManager } from '../session/SessionManager';", 'import'],
-  ['2', "import { UserRepository } from '../users/UserRepository';", 'import'],
-  ['3', '', ''],
-  ['4', 'export class AuthService {', 'keyword'],
-  ['5', '  private readonly sessions: SessionManager;', 'plain'],
-  ['6', '  private readonly users: UserRepository;', 'plain'],
-  ['7', '', ''],
-  ['8', '  constructor(', 'plain'],
-  ['9', '    sessions: SessionManager,', 'plain'],
-  ['10', '    users: UserRepository,', 'plain'],
-  ['11', '  ) {', 'plain'],
-  ['12', '    this.sessions = sessions;', 'plain'],
-  ['13', '    this.users = users;', 'plain'],
-  ['14', '  }', 'plain'],
-  ['15', '', ''],
-  ['16', '  async authenticate(credentials: Credentials) {', 'function'],
-  ['17', '    const user = await this.users.findByEmail(credentials.email);', 'plain'],
-  ['18', '    if (!user || !verify(credentials, user.hash)) {', 'keyword'],
-  ['19', "      throw new AuthError('Invalid credentials');", 'string'],
-  ['20', '    }', 'plain'],
-  ['21', '    return this.sessions.create(user.id);', 'function'],
-  ['22', '  }', 'plain'],
-  ['23', '}', 'keyword'],
+const pageGroups = [
+  { label: 'Repository', icon: LayoutDashboard, pages: ['Dashboard', 'Files', 'Search'] as Page[] },
+  { label: 'Intelligence', icon: Network, pages: ['Dependency Graph', 'Impact Analysis', 'Hotspots', 'Tests'] as Page[] },
+  { label: 'Git', icon: GitBranch, pages: ['Status', 'Change Intelligence', 'Git Actions', 'Stash', 'History', 'Compare'] as Page[] },
 ]
 
 function App() {
   const [page, setPage] = useState<Page>('Dashboard')
-  const [paletteOpen, setPaletteOpen] = useState(false)
-  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 900)
-  const [backendReady, setBackendReady] = useState(false)
-  const [repositories, setRepositories] = useState<import('./lib/api/client').Repository[]>([])
+  const [repositories, setRepositories] = useState<Repository[]>([])
   const [repositoryId, setRepositoryId] = useState<number | null>(() => Number(localStorage.getItem('repopilot.repositoryId')) || null)
   const [selectedFileId, setSelectedFileId] = useState<number | null>(null)
   const [selectedCommit, setSelectedCommit] = useState<string | null>(null)
-  const [dialog, setDialog] = useState<{ title: string; message: string; fields?: string[]; danger?: boolean; onConfirm: (values: string[]) => void } | null>(null)
-  const [onboarding, setOnboarding] = useState(false)
-  const [onboardingMode, setOnboardingMode] = useState<'local'|'github'|'file'>('local')
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [paletteOpen, setPaletteOpen] = useState(false)
   const [repositoryMenuOpen, setRepositoryMenuOpen] = useState(false)
+  const [onboardingOpen, setOnboardingOpen] = useState(false)
+  const [onboardingMode, setOnboardingMode] = useState<EntryMode>('local')
+  const [feedback, setFeedback] = useState('')
   const repositoryMenuRef = useRef<HTMLDivElement>(null)
-  const selectedRepository = repositories.find(item => item.id === repositoryId)
+  const selectedRepository = repositories.find(repository => repository.id === repositoryId) ?? null
 
   useEffect(() => {
-    api.health().then(() => setBackendReady(true)).catch(() => setBackendReady(false))
-    api.repositories().then(({items}) => { setRepositories(items); setRepositoryId(current => current && items.some(item => item.id === current) ? current : items[0]?.id ?? null) }).catch(() => setRepositories([]))
+    api.repositories().then(result => {
+      setRepositories(result.items)
+      setRepositoryId(current => current && result.items.some(item => item.id === current) ? current : result.items[0]?.id ?? null)
+    }).catch(() => setRepositories([]))
   }, [])
-  useEffect(() => { if (repositoryId) localStorage.setItem('repopilot.repositoryId', String(repositoryId)) }, [repositoryId])
-  const addRepository = (mode: 'local'|'github'|'file' = 'local') => { setOnboardingMode(mode); setOnboarding(true) }
-  const removeRepository = () => { if (!repositoryId) return; setDialog({ title: 'Remove repository registration?', message: 'Source files will not be deleted. This only removes the RepoPilot registration.', danger: true, onConfirm: async () => { await api.deleteRepository(repositoryId); const next = repositories.filter(item => item.id !== repositoryId); setRepositories(next); setRepositoryId(next[0]?.id ?? null) } }) }
 
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); setPaletteOpen(true) }
-      if (event.key === 'Escape') { setPaletteOpen(false); setRepositoryMenuOpen(false) }
+    if (repositoryId) localStorage.setItem('repopilot.repositoryId', String(repositoryId))
+    else localStorage.removeItem('repopilot.repositoryId')
+  }, [repositoryId])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        setPaletteOpen(true)
+      }
+      if (event.key === 'Escape') {
+        setPaletteOpen(false)
+        setRepositoryMenuOpen(false)
+      }
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
+
   useEffect(() => {
-    const onPointerDown = (event: PointerEvent) => { if (repositoryMenuRef.current && !repositoryMenuRef.current.contains(event.target as Node)) setRepositoryMenuOpen(false) }
+    const onPointerDown = (event: PointerEvent) => {
+      if (repositoryMenuRef.current && !repositoryMenuRef.current.contains(event.target as Node)) setRepositoryMenuOpen(false)
+    }
     document.addEventListener('pointerdown', onPointerDown)
     return () => document.removeEventListener('pointerdown', onPointerDown)
   }, [])
 
-  return <div className="app-shell" data-backend-ready={backendReady}>
-     <Sidebar page={page} setPage={setPage} open={sidebarOpen} setOpen={setSidebarOpen} selectedRepository={selectedRepository} onOpenRepositoryMenu={() => setRepositoryMenuOpen(value => !value)} />
-    <main className="main-shell">
-      <header className="topbar">
-        <button className="icon-button mobile-menu" onClick={() => setSidebarOpen(value => !value)} aria-label="Toggle navigation" aria-expanded={sidebarOpen}><Menu size={17} /></button>
-        <div className="crumb"><span className="crumb-repo"><Braces size={15} /> {selectedRepository?.name ?? 'RepoPilot'}</span><ChevronRight size={13} /><span>{selectedRepository?.branch ?? 'no branch'}</span><ChevronRight size={13} /><span className="muted">{page}</span></div>
-         <div className="top-actions" ref={repositoryMenuRef}><button className="repo-trigger" onClick={() => setRepositoryMenuOpen(value => !value)} aria-haspopup="listbox" aria-expanded={repositoryMenuOpen}><GitBranch size={14} /><span>{selectedRepository?.name ?? 'No repository'}</span><ChevronDown size={13} /></button><button className="button button-quiet workspace-action" onClick={() => addRepository('local')}>Add</button><button className="button button-quiet workspace-action" onClick={removeRepository} disabled={!repositoryId}>Remove</button><button className="command-trigger" onClick={() => setPaletteOpen(true)} aria-label="Open command palette"><Search size={15} /><span>Jump to anything</span><kbd>⌘ K</kbd></button>{repositoryMenuOpen && <RepositoryPopover repositories={repositories} activeId={repositoryId} onSelect={id => { setRepositoryId(id); setRepositoryMenuOpen(false) }} onAdd={() => { setRepositoryMenuOpen(false); addRepository('local') }} />}</div>
-      </header>
-      <div className="content-wrap workspace-canvas">
-        {page === 'Dashboard' && !repositoryId && repositories.length === 0 ? <Suspense fallback={<div className="welcome-loading">Loading RepoPilot…</div>}><WelcomeExperience onStart={addRepository} onExplore={() => document.getElementById('welcome-how')?.scrollIntoView({ behavior: 'smooth' })} /></Suspense> : page === 'Dashboard' && <DashboardCockpit setPage={setPage} repositoryId={repositoryId} onAddRepository={() => addRepository('local')} />}
-        {page === 'Files' && <FilesView setPage={setPage} repositoryId={repositoryId} setSelectedFileId={setSelectedFileId} />}
-        {page === 'File Detail' && <FileHub setPage={setPage} repositoryId={repositoryId} fileId={selectedFileId} />}
-        {page === 'History' && <HistoryView repositoryId={repositoryId} setPage={setPage} setSelectedCommit={setSelectedCommit} />}
-        {page === 'Commit Detail' && <CommitDetail repositoryId={repositoryId} sha={selectedCommit} setPage={setPage} setSelectedFileId={setSelectedFileId} />}
-         {page === 'Dependency Graph' && <GraphView setPage={setPage} selectedRepositoryId={repositoryId} selectedFileId={selectedFileId} setSelectedFileId={setSelectedFileId} />}
-        {page === 'Search' && <SearchView setPage={setPage} repositoryId={repositoryId} setSelectedFileId={setSelectedFileId} />}
-         {page === 'Impact Analysis' && <ImpactView setPage={setPage} repositoryId={repositoryId} selectedFileId={selectedFileId} setSelectedFileId={setSelectedFileId} />}
-         {page === 'Change Intelligence' && <ChangeIntelligence setPage={setPage} repositoryId={repositoryId} setSelectedFileId={setSelectedFileId} />}
-        {page === 'Hotspots' && <Hotspots repositoryId={repositoryId} setSelectedFileId={setSelectedFileId} setPage={setPage} />}
-        {page === 'Tests' && <TestsView repositoryId={repositoryId} setSelectedFileId={setSelectedFileId} setPage={setPage} />}
-        {page === 'Git Actions' && <GitActions repositoryId={repositoryId} />}
-      </div>
-    </main>
-    {paletteOpen && <CommandPalette close={() => setPaletteOpen(false)} setPage={setPage} />}
-    {onboarding && <OnboardingDialog initialMode={onboardingMode} close={() => setOnboarding(false)} setRepositories={setRepositories} setRepositoryId={setRepositoryId} setSelectedFileId={setSelectedFileId} setPage={setPage} />}
-     {dialog && <AppDialog {...dialog} close={() => setDialog(current => current === dialog ? null : current)} />}
-  </div>
-}
-
-function AppDialog({ title, message, fields, danger, onConfirm, close }: { title: string; message: string; fields?: string[]; danger?: boolean; onConfirm: (values: string[]) => void | Promise<void>; close: () => void }) {
-  const [values, setValues] = useState(fields?.map(() => '') ?? [])
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape' && !busy) { event.preventDefault(); close() } }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [busy, close])
-  const confirm = async () => {
-    if (values.some(value => !value.trim())) { setError('Please complete all required fields.'); return }
-    setError('')
-    setBusy(true)
-    try {
-      await onConfirm(values)
-      close()
-    } catch (cause) {
-      setError(cause instanceof Error && cause.message ? cause.message : 'Unable to complete this action.')
-    } finally {
-      setBusy(false)
-    }
-  }
-  return <div className="modal-backdrop" role="presentation"><div className="app-dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title"><div className="dialog-context">REPO PILOT / ACTION</div><h2 id="dialog-title">{title}</h2><p>{message}</p>{fields?.map((field, index) => <label key={field}>{field}<input autoFocus={index === 0} value={values[index] ?? ''} onChange={event => { setError(''); setValues(current => current.map((value, i) => i === index ? event.target.value : value)) }} disabled={busy} /></label>)}{error && <div className="dialog-error" role="alert">{error}</div>}<div className="dialog-actions"><button className="button button-quiet" onClick={close} disabled={busy}>Cancel</button><button className={`button ${danger ? 'button-danger' : 'button-primary'}`} onClick={confirm} disabled={busy}>{busy ? 'Working…' : danger ? 'Remove' : 'Continue'}</button></div></div></div>
-}
-
-function OnboardingDialog({ initialMode, close, setRepositories, setRepositoryId, setSelectedFileId, setPage }: { initialMode: 'local'|'github'|'file'; close: () => void; setRepositories: React.Dispatch<React.SetStateAction<import('./lib/api/client').Repository[]>>; setRepositoryId: (id: number) => void; setSelectedFileId: (id: number) => void; setPage: (page: Page) => void }) {
-  const [mode, setMode] = useState<'local'|'github'|'file'>(initialMode)
-  const [path, setPath] = useState(''); const [url, setUrl] = useState(''); const [destination, setDestination] = useState('/tmp/repopilot-clones/repository'); const [name, setName] = useState(''); const [inspect, setInspect] = useState<import('./lib/api/client').OnboardingInspection|null>(null); const [initialize, setInitialize] = useState(true); const [busy, setBusy] = useState(false); const [error, setError] = useState('')
-  const submit = async () => { setBusy(true); setError(''); try { if (mode === 'github') { const result = await api.cloneRepository({url, destination}); await complete(result.repository); return } const result = await api.inspectPath({kind: mode === 'file' ? 'file' : 'folder', path}); setInspect(result); if (!result.exists) throw new Error('That path does not exist.'); if (mode === 'file' && !result.repository_root) { if (!result.standalone_supported) throw new Error('This file is not supported for standalone inspection.'); throw new Error('Standalone file inspection is not available in the repository workspace yet.'); } const repoPath = result.repository_root ?? result.canonical_path ?? path; const repo = await api.onboardRepository({path: repoPath, name: name || result.repository_name || undefined, initialize_git: mode === 'local' && !result.is_git_repository && initialize}); await complete(repo, mode === 'file' ? result.canonical_path ?? path : undefined) } catch (e) { setError(e instanceof Error ? e.message : 'Unable to add this project.') } finally { setBusy(false) } }
-  const complete = async (repo: import('./lib/api/client').Repository, focus?: string) => { setRepositories(items => items.some(item => item.id === repo.id) ? items : [...items, repo]); setRepositoryId(repo.id); let scan; try { scan = await api.latestScan(repo.id) } catch { scan = await api.startScan(repo.id) } if (scan.status === 'ready' && focus) { const files = await api.files(repo.id); const relative = focus.replace(repo.path, '').replace(/^[/\\]+/, '').replace(/\\/g,'/'); const file = files.items.find(item => item.relative_path === relative); if (file) { setSelectedFileId(file.id); setPage('File Detail') } } close() }
-  return <div className="modal-backdrop" role="presentation"><div className="app-dialog onboarding-dialog" role="dialog" aria-modal="true" aria-labelledby="onboarding-title"><div className="dialog-kicker">REPO PILOT / ONBOARDING</div><h2 id="onboarding-title">Add to RepoPilot</h2><p>Bring a project, repository, or file. RepoPilot will inspect it before adding the right context.</p><div className="onboarding-modes">{([['local','Local Project','Open a folder already on this computer.'],['github','GitHub Repository','Clone a public or credentialed GitHub repository.'],['file','Open File','Start from a file and discover its repository.']] as const).map(([value,title,copy]) => <button key={value} className={`onboarding-mode ${mode === value ? 'selected' : ''}`} onClick={() => { setMode(value); setInspect(null); setError('') }}><strong>{title}</strong><small>{copy}</small></button>)}</div>{mode === 'github' ? <><label>Repository URL<input aria-label="GitHub repository URL" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://github.com/owner/repository" /></label><label>Clone destination<input aria-label="Clone destination" value={destination} onChange={e => setDestination(e.target.value)} /></label></> : <><label>{mode === 'file' ? 'File path' : 'Folder path'}<input aria-label={mode === 'file' ? 'File path' : 'Folder path'} value={path} onChange={e => setPath(e.target.value)} placeholder={mode === 'file' ? '/path/to/file.ts' : '/path/to/project'} /></label>{mode === 'local' && <label>Display name<input aria-label="Display name" value={name} onChange={e => setName(e.target.value)} placeholder="Project name" /></label>}{mode === 'local' && inspect && !inspect.is_git_repository && <label className="onboarding-check"><input type="checkbox" checked={initialize} onChange={e => setInitialize(e.target.checked)} /> Initialize Git for this project</label>}</>}{inspect && <div className="onboarding-inspection"><strong>{inspect.is_git_repository ? 'Project detected' : inspect.is_empty ? 'Empty project folder' : 'Project folder detected'}</strong><span>{inspect.repository_root ?? inspect.canonical_path}</span><small>{inspect.is_git_repository ? `Git repository · ${inspect.branch ?? 'branch unknown'}` : 'Git repository not detected'}</small></div>}{error && <div className="dialog-error" role="alert">{error}</div>}<div className="dialog-actions"><button className="button button-quiet" onClick={close} disabled={busy}>Cancel</button><button className="button button-primary" onClick={submit} disabled={busy || (mode === 'github' ? !url || !destination : !path)}>{busy ? 'Inspecting…' : mode === 'github' ? 'Clone & analyze' : 'Inspect & analyze'}</button></div></div></div>
-}
-
-function Sidebar({ page, setPage, open, setOpen, selectedRepository, onOpenRepositoryMenu }: { page: Page; setPage: (page: Page) => void; open: boolean; setOpen: (open: boolean) => void; selectedRepository?: Repository; onOpenRepositoryMenu: () => void }) {
-  return <aside className={`sidebar ${open ? '' : 'collapsed'}`}>
-    <div className="brand"><div className="brand-mark"><span>R</span><span className="brand-cursor">_</span></div>{open && <div><strong>RepoPilot</strong><small>repository intelligence</small></div>}<button type="button" className="icon-button sidebar-toggle" onClick={() => setOpen(!open)} aria-expanded={open} aria-label={open ? 'Collapse sidebar' : 'Expand sidebar'}><PanelLeft size={16} /></button></div>
-    <button type="button" className="repo-switcher" onClick={onOpenRepositoryMenu} aria-haspopup="listbox" aria-label="Select repository"><div className="repo-symbol"><GitBranch size={14} /></div>{open && <div className="repo-label"><strong>{selectedRepository?.name ?? 'No repository'}</strong><span>{selectedRepository ? selectedRepository.branch ?? 'Branch unknown' : 'Choose a repository'}</span></div>}{open && <ChevronDown size={14} className="muted" />}</button>
-    <nav className="nav-sections">{nav.map(section => <div className="nav-section" key={section.label}><div className="nav-label">{open && section.label}</div>{section.items.map(item => <button key={item.label} className={`nav-item ${page === item.label ? 'active' : ''}`} onClick={() => setPage(item.label as Page)} title={item.label}><item.icon size={16} /><span>{open && item.label}</span>{open && item.label === 'Impact Analysis' && <span className="nav-hot">NEW</span>}</button>)}</div>)}</nav>
-    <div className="sidebar-bottom"><div className="scan-status"><span className="status-pulse" />{open && <div><strong>{selectedRepository ? 'Repository selected' : 'No repository selected'}</strong><span>{selectedRepository ? 'Choose a view to inspect its signals' : 'Add a repository to begin'}</span></div>}</div></div>
-  </aside>
-}
-
-function RepositoryPopover({ repositories, activeId, onSelect, onAdd }: { repositories: Repository[]; activeId: number | null; onSelect: (id: number) => void; onAdd: () => void }) {
-  return <div className="repository-popover" role="listbox" aria-label="Registered repositories">
-    <div className="popover-kicker">Workspace repositories</div>
-    {repositories.length ? repositories.map(repo => <button type="button" className={`repository-option ${repo.id === activeId ? 'active' : ''}`} key={repo.id} onClick={() => onSelect(repo.id)} role="option" aria-selected={repo.id === activeId}><span className="repo-option-mark"><GitBranch size={13} /></span><span><strong>{repo.name}</strong><small>{repo.branch ?? 'Branch unknown'} · {repo.path}</small></span>{repo.id === activeId && <span className="repo-active">ACTIVE</span>}</button>) : <div className="repository-empty">No repositories registered.</div>}
-    <button type="button" className="repository-add" onClick={onAdd}><span>+</span> Add repository</button>
-  </div>
-}
-
-function PageHeader({ eyebrow, title, description, action }: { eyebrow: string; title: string; description: string; action?: React.ReactNode }) { return <div className="page-header"><div><div className="page-context">{eyebrow}</div><h1>{title}</h1><p>{description}</p></div>{action}</div> }
-function Metric({ label, value, detail, icon: Icon, accent = '' }: { label: string; value: string; detail: string; icon: typeof Activity; accent?: string }) { return <div className={`metric ${accent}`}><div className="metric-top"><span>{label}</span><Icon size={15} /></div><strong>{value}</strong><small>{detail}</small></div> }
-function Panel({ title, action, children, className = '' }: { title: string; action?: React.ReactNode; children: React.ReactNode; className?: string }) { return <section className={`panel ${className}`}><div className="panel-head"><div><h2>{title}</h2></div>{action}</div>{children}</section> }
-function Status({ children, tone = 'high' }: { children: React.ReactNode; tone?: string }) { return <span className={`status ${tone}`}><i />{children}</span> }
-
-function Dashboard({ setPage, repositoryId }: { setPage: (p: Page) => void; repositoryId: number | null }) { const [overview,setOverview]=useState<import('./lib/api/client').Overview|null>(null);const [error,setError]=useState('');useEffect(()=>{if(repositoryId)api.overview(repositoryId).then(setOverview).catch(()=>setError('No READY snapshot available'))},[repositoryId]);return <><PageHeader eyebrow="Repository overview" title="Know what you’re changing." description="A deterministic map of the selected repository’s structure and relationships." action={<button className="button button-primary" onClick={()=>setPage('Files')}>Explore files</button>}/>{error&&<div className="error-line">{error}</div>}{!repositoryId?<div className="panel empty-files"><Folder size={24}/><strong>Select a repository</strong><span>Add or select a repository from the top bar.</span></div>:!overview?<div className="panel empty-files"><Activity size={24}/><strong>Scan this repository</strong><span>A READY snapshot is required for repository intelligence.</span></div>:<><div className="repo-banner"><div className="repo-banner-icon"><Terminal size={22}/></div><div><strong>Selected repository</strong><span>Snapshot {overview.snapshot_id} · READY</span></div></div><GitStatusPanel repositoryId={repositoryId}/><div className="metrics-grid"><Metric label="Files" value={String(overview.file_count)} detail="Scanned files" icon={FileCode2} accent="cyan"/><Metric label="Lines of code" value={String(overview.total_lines)} detail="Text-file lines" icon={Hash}/><Metric label="Symbols" value={String(overview.symbol_count)} detail="Parsed symbols" icon={Braces} accent="violet"/><Metric label="Dependencies" value={String(overview.dependency_count)} detail="Internal relationships" icon={Network}/><Metric label="Tests" value={String(overview.test_file_count)} detail="Classified test files" icon={TestTube2} accent="amber"/></div><div className="dashboard-grid"><Panel title="Language composition"><div className="legend">{Object.entries(overview.language_counts).map(([language,count])=><Legend key={language} name={language} value={String(count)} color="cyan"/>)}</div></Panel><Panel title="Repository signals"><div className="note-list"><div><span><strong>{overview.hotspot_count} structural hotspots</strong><small>Open Hotspots for explainable rankings.</small></span></div><div><span><strong>{overview.warning_count} scan warnings</strong><small>Warnings come from the selected READY snapshot.</small></span></div></div></Panel></div></>}</> }
-function GitStatusPanel({ repositoryId }: { repositoryId: number }) { const [status,setStatus]=useState<import('./lib/api/client').GitStatus|null>(null);const [loading,setLoading]=useState(true);const [error,setError]=useState('');const refresh=()=>{setLoading(true);setError('');api.gitStatus(repositoryId).then(setStatus).catch(()=>setError('Git status unavailable')).finally(()=>setLoading(false))};useEffect(refresh,[repositoryId]);if(loading)return <Panel title="Git status"><div className="git-status-message"><Activity size={16}/>Loading Git status…</div></Panel>;if(error)return <Panel title="Git status" action={<button className="button button-quiet" onClick={refresh}>Refresh</button>}><div className="git-status-message error-line">{error}</div></Panel>;if(!status?.is_git_repository)return <Panel title="Git status" action={<button className="button button-quiet" onClick={refresh}>Refresh</button>}><div className="git-status-message"><GitBranch size={16}/>This repository is not a Git repository.</div></Panel>;return <Panel title="Git status" action={<button className="button button-quiet" onClick={refresh}>Refresh</button>}><div className="git-status-head"><div><Status tone={status.clean?'high':'medium'}>{status.clean?'Clean':'Changes'}</Status><strong>{status.detached?'Detached HEAD':status.branch??'Unknown branch'}</strong></div><div className="git-status-counts"><span>{status.staged_count} staged</span><span>{status.unstaged_count} modified</span><span>{status.untracked_count} untracked</span><span>{status.conflicted_count} conflicted</span></div></div><div className="git-status-meta">{status.head&&<span><b>HEAD</b> {status.head.short_sha} · {status.head.message} · {status.head.author}</span>}{status.upstream?<span><b>↕</b> {status.upstream.name} · ↑{status.upstream.ahead} ↓{status.upstream.behind}</span>:<span>No upstream configured</span>}</div>{status.remotes.length>0&&<div className="git-remotes"><b>Remotes</b>{status.remotes.map(remote=><span key={remote.name}>{remote.name} · {remote.fetch_url}</span>)}</div>}</Panel> }
-function Legend({ name, value, color }: { name: string; value: string; color: string }) { return <div><span><i className={`dot ${color}`} />{name}</span><strong>{value}</strong></div> }
-function MiniGraph() { return <div className="mini-graph"><div className="graph-grid" /><div className="graph-lines"><span className="line l1" /><span className="line l2" /><span className="line l3" /><span className="line l4" /></div><GraphNode x="center" title="src" sub="284 files" tone="root" /><GraphNode x="n1" title="auth" sub="34 files" tone="cyan" /><GraphNode x="n2" title="session" sub="18 files" tone="violet" /><GraphNode x="n3" title="ui" sub="92 files" tone="amber" /><GraphNode x="n4" title="tests" sub="76 files" tone="slate" /><div className="graph-caption"><span><i className="dot cyan" />Core modules</span><span><i className="dot amber" />Test surface</span><span>12 of 184 modules shown</span></div></div> }
-function GraphNode({ x, title, sub, tone }: { x: string; title: string; sub: string; tone: string }) { return <div className={`graph-node ${x} ${tone}`}><div className="node-icon"><Braces size={13} /></div><div><strong>{title}</strong><span>{sub}</span></div></div> }
-function HotspotRows() { return <div className="hotspot-list"><div><FileCode2 size={15} /><span><strong>AuthService.ts</strong><small>src/auth · 18 dependents</small></span><b className="hot-number">18</b></div><div><FileCode2 size={15} /><span><strong>Router.ts</strong><small>src/core · 15 dependents</small></span><b className="hot-number">15</b></div><div><FileCode2 size={15} /><span><strong>SessionManager.ts</strong><small>src/session · 12 dependents</small></span><b className="hot-number">12</b></div></div> }
-
-function FilesView({ setPage, repositoryId, setSelectedFileId }: { setPage: (p: Page) => void; repositoryId: number | null; setSelectedFileId: (id:number)=>void }) {
-  const [expanded, setExpanded] = useState(true)
-  const [scan, setScan] = useState<Scan | null>(null)
-  const [items, setItems] = useState<RepositoryFile[]>([])
-  const [message, setMessage] = useState('')
-
-  const refresh = async (id: number) => {
-    try {
-      const [latest, page] = await Promise.all([api.latestScan(id), api.files(id)])
-      setScan(latest)
-      setItems(page.items)
-      setMessage('')
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to load repository files')
-    }
+  const openOnboarding = (mode: EntryMode = 'local') => {
+    setOnboardingMode(mode)
+    setOnboardingOpen(true)
   }
 
-  useEffect(() => {
-    let cancelled = false
-    if (!repositoryId) return () => { cancelled = true }
-    refresh(repositoryId).catch(() => setMessage('No repository is available'))
-    return () => { cancelled = true }
-  }, [repositoryId])
+  const selectFile = (fileId: number) => {
+    setSelectedFileId(fileId)
+    setPage('File Detail')
+  }
 
-  useEffect(() => {
-    if (!repositoryId || !scan || !['queued', 'scanning', 'finalizing'].includes(scan.status)) return
-    const timer = window.setInterval(() => api.scan(repositoryId, scan.id).then(next => {
-      setScan(next)
-      if (next.status === 'ready') refresh(repositoryId)
-    }).catch(() => setMessage('Unable to poll scan status')), 750)
-    return () => window.clearInterval(timer)
-  }, [repositoryId, scan?.id, scan?.status])
-
-  const startScan = async () => {
+  const rescan = async () => {
     if (!repositoryId) return
-    try { setScan(await api.startScan(repositoryId)); await refresh(repositoryId) } catch (error) { setMessage(error instanceof Error ? error.message : 'Unable to start scan') }
+    try {
+      await api.startScan(repositoryId)
+      setFeedback('Scan queued. Workspace telemetry will refresh when the snapshot is ready.')
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : 'Unable to start repository scan.')
+    }
+    window.setTimeout(() => setFeedback(''), 4500)
   }
-  const action = <button className="button button-quiet" onClick={startScan} disabled={!repositoryId || ['queued', 'scanning', 'finalizing'].includes(scan?.status ?? '')}><Folder size={15} /> {scan?.status === 'ready' ? 'Rescan' : 'Scan repository'}</button>
-  if (!repositoryId) return <><PageHeader eyebrow="Explore / repository tree" title="Files" description="Navigate every file, symbol, and relationship in context." action={action} /><div className="panel empty-files"><Folder size={24} /><strong>No repository loaded</strong><span>Register a repository from the API before scanning files.</span></div></>
-  if (!scan) return <><PageHeader eyebrow="Explore / repository tree" title="Files" description="Navigate every file, symbol, and relationship in context." action={action} /><div className="panel empty-files"><Activity size={24} /><strong>Repository has not been scanned</strong><span>Start a scan to build the first file snapshot.</span></div>{message && <div className="error-line">{message}</div>}</>
-  if (scan.status === 'failed') return <><PageHeader eyebrow="Explore / repository tree" title="Files" description="Navigate every file, symbol, and relationship in context." action={action} /><div className="panel empty-files"><TriangleAlert size={24} /><strong>Scan failed</strong><span>{scan.error_message ?? 'The repository could not be scanned.'}</span></div></>
-  return <><PageHeader eyebrow={`Explore / repository tree · snapshot ${scan.id}`} title="Files" description="Navigate every file, symbol, and relationship in context." action={action} /><div className="scan-strip"><Status tone={scan.status === 'ready' ? 'high' : 'medium'}>{scan.status}</Status><span>{scan.processed_files} / {scan.discovered_files || '…'} files · {scan.percentage}%</span></div><div className="file-layout"><Panel title="Repository" className="file-tree-panel"><div className="tree-search"><Search size={14} /><span>Filter files...</span><kbd>/</kbd></div><div className="tree-root"><button onClick={() => setExpanded(!expanded)}><ChevronDown size={14} /><Folder size={15} className="folder-icon" /><strong>repository</strong></button>{expanded && <div className="tree-children"><TreeFolder name="Files" count={String(items.length)} open />{items.slice(0, 12).map(file => <TreeFolder key={file.id} name={file.name} file indent onClick={() => { setSelectedFileId(file.id); setPage('File Detail') }} />)}</div>}</div></Panel><Panel title="Source files" action={<span className="muted">{items.length} files</span>} className="file-list-panel"><div className="file-toolbar"><span>{scan.statistics.file_count} files · {scan.statistics.total_lines} lines</span><span className="muted">All languages · sorted by path</span></div><div className="file-table"><div className="table-head"><span>File</span><span>Language</span><span>Size</span><span>Lines</span></div>{items.map(file => <button className="file-row" key={file.id} onClick={() => { setSelectedFileId(file.id); setPage('File Detail') }}><span><FileCode2 size={15} /><strong>{file.name}</strong><small>{file.relative_path}</small></span><span><i className={`lang-dot ${file.language.toLowerCase()}`} />{file.language}{file.is_test && ' · test'}</span><span>{formatBytes(file.size_bytes)}</span><span className="relation-count">{file.line_count ?? '—'}</span></button>)}</div></Panel></div></>
-}
 
-function formatBytes(value: number) { return value < 1024 ? `${value} B` : value < 1024 * 1024 ? `${(value / 1024).toFixed(1)} KB` : `${(value / 1024 / 1024).toFixed(1)} MB` }
-function TreeFolder({ name, count, file, selected, open, indent = false, indent2 = false, onClick }: { name: string; count?: string; file?: boolean; selected?: boolean; open?: boolean; indent?: boolean; indent2?: boolean; onClick?: () => void }) { return <button onClick={onClick} className={`tree-row ${selected ? 'selected' : ''} ${indent ? 'indent' : ''} ${indent2 ? 'indent2' : ''}`}>{file ? <FileCode2 size={14} /> : open ? <ChevronDown size={13} /> : <ChevronRight size={13} />} {!file && <Folder size={14} className="folder-icon" />}<span>{name}</span>{count && <small>{count}</small>}</button> }
+  const finishOnboarding = async (repository: Repository, focus?: string) => {
+    setRepositories(current => current.some(item => item.id === repository.id) ? current : [...current, repository])
+    setRepositoryId(repository.id)
+    try {
+      const scan = await api.latestScan(repository.id).catch(() => api.startScan(repository.id))
+      if (focus && scan.status === 'ready') {
+        const files = await api.files(repository.id)
+        const relative = focus.replace(repository.path, '').replace(/^[/\\]+/, '').replace(/\\/g, '/')
+        const file = files.items.find(item => item.relative_path === relative)
+        if (file) {
+          setSelectedFileId(file.id)
+          setPage('File Detail')
+        }
+      }
+    } catch {
+      // Registration succeeded even if the first scan is not immediately available.
+    }
+    setOnboardingOpen(false)
+    setPage(current => current === 'Onboarding' ? 'Dashboard' : current)
+    setFeedback(`Connected ${repository.name}.`)
+    window.setTimeout(() => setFeedback(''), 3500)
+  }
 
-function FileHub({ setPage, repositoryId, fileId }: { setPage:(p:Page)=>void; repositoryId:number|null; fileId:number|null }) { const [file,setFile]=useState<import('./lib/api/client').RepositoryFile|null>(null);const [content,setContent]=useState<string|null>(null);const [symbols,setSymbols]=useState<{id:number;kind:string;name:string;qualified_name:string;start_line:number;end_line:number}[]>([]);const [forward,setForward]=useState<{target_file_id:number|null;imported_name:string;evidence:string}[]>([]);const [reverse,setReverse]=useState<{source_file_id:number;imported_name:string;evidence:string}[]>([]);const [tests,setTests]=useState<import('./lib/api/client').TestRelationship[]>([]);const [hotspot,setHotspot]=useState<import('./lib/api/client').Hotspot|null>(null);const [error,setError]=useState('');useEffect(()=>{if(repositoryId&&fileId){Promise.all([api.file(repositoryId,fileId),api.fileContent(repositoryId,fileId),api.symbols(repositoryId,fileId),api.forwardDependencies(repositoryId,fileId),api.reverseDependencies(repositoryId,fileId),api.sourceTests(repositoryId,fileId),api.hotspots(repositoryId)]).then(([meta,source,syms,forwardPage,reversePage,testPage,hotspotPage])=>{setFile(meta);setContent(source.content);setSymbols(syms.items);setForward(forwardPage.items);setReverse(reversePage.items);setTests(testPage.items);setHotspot(hotspotPage.items.find(item=>item.file_id===fileId)??null)}).catch(()=>setError('Unable to load file intelligence'))}},[repositoryId,fileId]);if(!repositoryId||!fileId)return <div className="panel empty-files"><FileCode2 size={22}/><span>Select a file from Files or Search.</span></div>;return <><PageHeader eyebrow="Explore / file intelligence" title={file?.relative_path??'File'} description="Source, symbols, relationships, tests, and structural signals in one place." action={<button className="button button-primary" onClick={()=>setPage('Impact Analysis')}>Analyze impact</button>}/>{error&&<div className="error-line">{error}</div>}<div className="file-detail-grid file-intelligence-workbench"><Panel title="Source viewer" className="code-panel"><div className="source-toolbar"><span>{file?.language ?? 'Source'} · {file?.line_count ?? '—'} lines</span><span>{file?.classification ?? 'Indexed source'}</span></div>{content===null?<div className="empty-files"><TriangleAlert size={20}/><span>{file?.classification??'Source unavailable'}</span></div>:<div className="source-view">{content.split("\n").map((line,index)=><div className="source-line" key={index}><span className="line-number">{index+1}</span><code>{line || " "}</code></div>)}</div>}</Panel><aside className="hub-side intelligence-gutter"><div className="gutter-heading">Repository signals</div><Panel title="Symbols"><div className="hub-list">{symbols.length?symbols.map(symbol=><div key={symbol.id}><strong>{symbol.qualified_name}</strong><small>{symbol.kind} · line {symbol.start_line+1}</small></div>):<span className="muted">No symbols detected</span>}</div></Panel><Panel title="Dependencies"><div className="signal-pair"><strong>{forward.length}</strong><span>forward imports</span><strong>{reverse.length}</strong><span>reverse dependents</span></div></Panel><Panel title="Tests"><div className="hub-list"><div><strong>{tests.length} associated tests</strong><small>{tests[0]?.evidence_level??'No static relationship'}</small></div></div></Panel><Panel title="Hotspot"><div className="hub-list"><div><strong>{hotspot?hotspot.score:'Not ranked'}</strong><small>{hotspot?.reasons[0]??'No hotspot data'}</small></div></div></Panel><button className="button button-quiet full" onClick={()=>setPage('Dependency Graph')}>Open dependency graph</button></aside></div></> }
+  const navigate = (nextPage: string) => {
+    if (nextPage === 'Onboarding') {
+      openOnboarding()
+      return
+    }
+    setPage(nextPage as Page)
+    setPaletteOpen(false)
+    setRepositoryMenuOpen(false)
+  }
 
-function GraphView({ setPage, selectedRepositoryId, selectedFileId, setSelectedFileId }: { setPage: (p: Page) => void; selectedRepositoryId: number | null; selectedFileId: number | null; setSelectedFileId: (id: number) => void }) { const [graph,setGraph]=useState<Awaited<ReturnType<typeof api.graph>>|null>(null); const [depth,setDepth]=useState(2); const [mode,setMode]=useState<'repository'|'file'>('repository'); const [error,setError]=useState(''); const load=()=>{if(!selectedRepositoryId)return;setError('');setGraph(null);api.graph(selectedRepositoryId,mode==='file'?selectedFileId??undefined:undefined,'both',depth).then(setGraph).catch(()=>setError('Unable to load the dependency graph.'))}; useEffect(load,[selectedRepositoryId,selectedFileId,mode,depth]); const selected=Boolean(selectedRepositoryId); return <><PageHeader eyebrow="Explore / relationships" title="Dependency Graph" description="Build a live map of repository dependencies, then narrow it to a selected file." action={<div className="page-actions"><button className={`button ${mode==='repository'?'button-primary':'button-quiet'}`} onClick={()=>setMode('repository')} disabled={!selected}>Build repository graph</button><button className={`button ${mode==='file'?'button-primary':'button-quiet'}`} onClick={()=>setMode('file')} disabled={!selectedFileId}>Focus selected file</button></div>} /><div className="graph-toolbar"><div className="graph-mode"><button className={mode==='repository'?'active':''} onClick={()=>setMode('repository')}>Repository</button><button className={mode==='file'?'active':''} onClick={()=>setMode('file')} disabled={!selectedFileId}>File rooted</button></div><select className="filter-button" value={depth} onChange={event=>setDepth(Number(event.target.value))}><option value={0}>Depth 0</option><option value={1}>Depth 1</option><option value={2}>Depth 2</option><option value={3}>Depth 3</option></select><span className="toolbar-spacer"/><span className="muted">{graph?`${graph.node_count} nodes · ${graph.edge_count} edges${graph.truncated?' · truncated':''}`:selected?'Loading graph…':'No graph loaded'}</span></div><div className="graph-workspace"><div className="graph-canvas">{!selected?<div className="empty-files"><Network size={24}/><strong>Select a repository</strong><span>Choose a repository to explore its dependency graph.</span><button className="button button-quiet" onClick={()=>setPage('Dashboard')}>Open overview</button></div>:error?<div className="empty-files"><TriangleAlert size={24}/><strong>{error}</strong><button className="button button-quiet" onClick={load}>Try again</button></div>:graph?<ReactFlow nodes={graph.nodes.map((node,index)=>({id:String(node.id),position:{x:index%3*210,y:Math.floor(index/3)*100},data:{label:<span className={`flow-node ${node.is_test?'is-test':''}`}><strong>{node.name}</strong><small>{node.path}</small></span>}}))} edges={graph.edges.map(edge=>({id:String(edge.id),source:String(edge.source),target:String(edge.target),label:edge.imported_name,style:{stroke:edge.kind.toLowerCase().includes('direct')?'var(--obsidian-cyan)':'var(--obsidian-violet)',strokeWidth:1.6},className:edge.kind.toLowerCase().includes('direct')?'edge-direct':'edge-transitive'}))} fitView onNodeClick={(_, node) => { setSelectedFileId(Number(node.id)); setPage('File Detail') }}><Background/><MiniMap/><Controls/></ReactFlow>:<div className="empty-files"><Activity size={24}/><span>Loading graph…</span></div>}</div><aside className="graph-inspector"><div className="inspector-kicker">{mode==='repository'?'REPOSITORY SNAPSHOT':'FILE ROOTED SNAPSHOT'}</div><div className="selected-file"><Network size={16}/><span>{graph?`${graph.node_count} nodes · ${graph.edge_count} edges`:selected?'Loading graph…':'No file selected'}</span></div><div className="graph-legend"><span><i className="legend-direct"/>Direct</span><span><i className="legend-transitive"/>Transitive</span><span><i className="legend-test"/>Test file</span></div>{graph?.truncated&&<div className="error-line">Showing a truncated graph.</div>}</aside></div></> }
+  const view = useMemo(() => renderPage({
+    page,
+    repository: selectedRepository,
+    repositoryId,
+    selectedFileId,
+    selectedCommit,
+    setPage,
+    setSelectedCommit,
+    selectFile,
+  }), [page, selectedRepository, repositoryId, selectedFileId, selectedCommit])
 
-function BigGraphNode({ className, title, path, tone }: { className: string; title: string; path: string; tone: string }) { return <div className={`big-node ${className} ${tone}`}><div className="node-icon"><FileCode2 size={14} /></div><div><strong>{title}</strong><span>{path}</span></div></div> }
+  if (!selectedRepository && repositories.length === 0 && page === 'Dashboard' && !onboardingOpen) {
+    return <div className="rp-landing"><Suspense fallback={<div className="rp-landing-loading">Loading relationship field…</div>}><WelcomeExperience onStart={openOnboarding} onExplore={() => document.getElementById('welcome-how')?.scrollIntoView({ behavior: 'smooth' })} /></Suspense>{onboardingOpen && <OnboardingOverlay mode={onboardingMode} onComplete={finishOnboarding} onClose={() => setOnboardingOpen(false)} />}</div>
+  }
 
-function SearchView({ setPage, repositoryId, setSelectedFileId }: { setPage: (p: Page) => void; repositoryId: number | null; setSelectedFileId:(id:number)=>void }) { const [query,setQuery]=useState('');const [results,setResults]=useState<import('./lib/api/client').SearchHit[]>([]);const [error,setError]=useState('');useEffect(()=>{if(!repositoryId||!query.trim()){setResults([]);return}const timer=window.setTimeout(()=>api.search(repositoryId,query).then(r=>setResults(r.items)).catch(()=>setError('Search unavailable')),250);return()=>window.clearTimeout(timer)},[repositoryId,query]);return <><PageHeader eyebrow="Explore / code intelligence" title="Search" description="Find files, symbols, and source text."/><div className="search-input large"><Search size={18}/><input aria-label="Search repository" value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search the repository"/></div><Panel title={`${results.length} results`} className="results-panel">{error?<div className="error-line">{error}</div>:results.length===0?<div className="empty-files"><Search size={20}/><span>Search this repository.</span></div>:results.map(result=><Result key={`${result.type}-${result.file_id}-${result.symbol_id??''}`} type={result.type.toUpperCase()} title={result.name} path={result.path} line={result.line?String(result.line):'—'} text={result.snippet} tone="cyan" onClick={()=>{setSelectedFileId(result.file_id);setPage('File Detail')}}/>)}</Panel></> }
-
-function Result({ type, title, path, line, text, tone, onClick }: { type: string; title: string; path: string; line: string; text: string; tone: string; onClick?: () => void }) { return <button className="result-row" onClick={onClick}><span className={`result-type ${tone}`}>{type}</span><span className="result-main"><strong>{title}</strong><small>{path} <b>:{line}</b></small><code>{text}</code></span><ArrowUpRight size={15} /></button> }
-
-function ImpactView({ setPage, repositoryId, selectedFileId, setSelectedFileId }: { setPage: (p: Page) => void; repositoryId: number | null; selectedFileId: number | null; setSelectedFileId: (id: number) => void }) { const fileId=selectedFileId;const [items,setItems]=useState<import('./lib/api/client').ImpactItem[]>([]);const [running,setRunning]=useState(false);const selected=Boolean(repositoryId&&fileId);const run=()=>{if(!selected)return;setRunning(true);api.impact(repositoryId!,[fileId!]).then(r=>setItems(r.affected_files)).finally(()=>setRunning(false))};useEffect(()=>{setItems([]);if(selected)run()},[repositoryId,fileId]);const direct=items.filter(item=>item.dependency_path.length<=2);const transitive=items.filter(item=>item.dependency_path.length>2);return <><PageHeader eyebrow="Analyze / change impact" title="Trace the impact cascade." description="Start from a real file and follow direct, transitive, and test-linked effects in the READY snapshot." action={<button className="button button-primary" onClick={run} disabled={!selected||running}>{running?'Analyzing…':'Refresh analysis'}</button>}/><div className="impact-pipeline"><div className="impact-stage active"><span>Target</span><strong>{selected?'Selected file':'Choose a file'}</strong><small>{selected?'READY snapshot root':'Open Files or Search'}</small></div><div className="impact-arrow">→</div><div className="impact-stage"><span>Direct consumers</span><strong>{running?'…':direct.length}</strong><small>One hop from target</small></div><div className="impact-arrow">→</div><div className="impact-stage"><span>Transitive egress</span><strong>{running?'…':transitive.length}</strong><small>Further dependency paths</small></div><div className="impact-arrow">→</div><div className="impact-stage"><span>Test validation</span><strong>Static</strong><small>No runtime coverage claim</small></div></div><Panel title="Affected files" className="impact-results">{items.length?items.map(item=><button className="impact-row" key={item.file_id} onClick={()=>{setSelectedFileId(item.file_id);setPage('File Detail')}}><span className={`impact-tag ${item.dependency_path.length<=2?'direct':'transitive'}`}>{item.dependency_path.length<=2?'DIRECT':'TRANSITIVE'}</span><strong>{item.path}</strong><small>{item.dependency_path.map(node=>node.path).join(' → ')}</small></button>):<div className="empty-files"><Activity size={20}/><strong>{selected?(running?'Analyzing repository baseline…':'No affected files detected'):'Select a repository and file to run impact analysis.'}</strong><span>{selected?'Reverse dependencies are computed from the READY snapshot.':'Choose a file from Files or Search first.'}</span></div>}</Panel></> }
-
-function Hotspots({ repositoryId, setSelectedFileId, setPage }: { repositoryId: number | null; setSelectedFileId:(id:number)=>void; setPage:(p:Page)=>void }) { const [items,setItems]=useState<import('./lib/api/client').Hotspot[]>([]);useEffect(()=>{if(repositoryId)api.hotspots(repositoryId).then(r=>setItems(r.items))},[repositoryId]);return <><PageHeader eyebrow="Analyze / repository signals" title="Structural hotspots" description="Ranked concentration signals from the READY snapshot. Scores explain where change can reach furthest."/><Panel title="Hotspot ranking" action={<span className="muted">{items.length} signals</span>}>{items.length?items.map(item=><div className="hotspot-table-row" key={item.file_id}><button className="hotspot-open" onClick={()=>{setSelectedFileId(item.file_id);setPage('File Detail')}}><span className="hotspot-rank">#{String(item.rank).padStart(2,'0')}</span><span className="hotspot-main"><strong>{item.path}</strong><span>{item.reasons[0]??'Structural concentration detected'}</span><small>{item.language} · {item.is_test?'test file':'source file'}</small></span><span className="hotspot-signals"><b>{item.score}</b><small>score</small></span><span className="hotspot-metrics"><span>{item.metrics.lines} lines</span><span>{item.metrics.symbols} symbols</span><span>↑ {item.metrics.fan_in} · ↓ {item.metrics.fan_out}</span><span>reach {item.metrics.impact_reach}</span></span></button><button className="button button-quiet hotspot-impact" onClick={()=>{setSelectedFileId(item.file_id);setPage('Impact Analysis')}}>Analyze impact</button></div>):<div className="empty-files"><strong>No hotspots detected</strong><span>The snapshot has no files with elevated structural concentration.</span></div>}</Panel></> }
-
-function ChangeIntelligence({ setPage, repositoryId, setSelectedFileId }: { setPage:(p:Page)=>void; repositoryId:number|null; setSelectedFileId:(id:number)=>void }) {
-  const [data,setData]=useState<import('./lib/api/client').ChangesResponse|null>(null); const [loading,setLoading]=useState(false); const [error,setError]=useState('')
-  const load=()=>{if(!repositoryId)return;setLoading(true);setError('');api.changes(repositoryId).then(setData).catch(()=>setError('Change intelligence is unavailable.')).finally(()=>setLoading(false))}; useEffect(load,[repositoryId])
-  const open=(id:number|null)=>{if(id){setSelectedFileId(id);setPage('File Detail')}}
-  if(!repositoryId)return <><PageHeader eyebrow="Analyze / change intelligence" title="What changed?" description="Deterministic change scope and risk from the working tree."/><div className="panel empty-files"><GitBranch size={24}/><strong>Select a repository</strong></div></>
-  if(loading)return <><PageHeader eyebrow="Analyze / change intelligence" title="What changed?" description="Deterministic change scope and risk from the working tree."/><div className="panel empty-files"><Activity size={22}/><span>Loading change intelligence…</span></div></>
-  if(error)return <><PageHeader eyebrow="Analyze / change intelligence" title="What changed?" description="Deterministic change scope and risk from the working tree."/><div className="panel empty-files"><TriangleAlert size={22}/><strong>{error}</strong><button className="button button-quiet" onClick={load}>Try again</button></div></>
-  if(!data)return <div className="panel empty-files"><Activity size={22}/><span>No change data available.</span></div>
-  if(data.state==='no_ready_snapshot')return <div className="panel empty-files"><Activity size={22}/><strong>No READY snapshot</strong><span>Scan the repository before reviewing changes.</span></div>
-  if(data.state==='git_error')return <div className="panel empty-files"><GitBranch size={22}/><strong>Git status unavailable</strong><span>Verify that the registered path is a readable Git repository.</span></div>
-  if(data.state==='clean')return <div className="panel empty-files"><ShieldCheck size={22}/><strong>Working tree clean</strong><span>No current changes to analyze.</span></div>
-  const list=(items:any[])=> <div className="change-file-list">{items.map(item=>{const id=item.file_id??item.source_file_id??null;const path=item.path??item.source_path??item.test_path??'Unknown file';return <button className="change-file-row" key={`${path}-${id}`} onClick={()=>open(id)}><strong>{path}</strong><small>{item.status??item.reasons?.[0]??''}</small></button>})}</div>
-  return <><PageHeader eyebrow="Analyze / change intelligence" title="What changed?" description="Deterministic change scope and risk from the working tree." action={<button className="button button-quiet" onClick={load}>Refresh</button>}/><div className="metrics-grid change-metrics"><Metric label="Changed" value={String(data.diff.files)} detail="Files in working tree" icon={GitBranch} accent="cyan"/><Metric label="Additions" value={`+${data.diff.additions}`} detail="Lines added" icon={ArrowUpRight} accent="green"/><Metric label="Deletions" value={`-${data.diff.deletions}`} detail="Lines removed" icon={ArrowDownLeft} accent="red"/><Metric label="Risk" value={data.risk.level.toUpperCase()} detail={`Score ${data.risk.score}/100`} icon={TriangleAlert} accent="amber"/></div><div className="change-grid"><Panel title="Risk reasons"><ul className="reason-list">{data.risk.reasons.map(reason=><li key={reason}>{reason}</li>)}</ul></Panel><Panel title="Changed files" action={data.truncated?<span className="muted">Truncated</span>:undefined}>{list(data.changed_files)}</Panel><Panel title="Affected files">{list(data.affected_files)}</Panel><Panel title="Hotspots">{list(data.hotspots)}<button className="button button-quiet" onClick={()=>setPage('Hotspots')}>Open Hotspots</button></Panel><Panel title="Tests">{list(data.tests)}<button className="button button-quiet" onClick={()=>setPage('Tests')}>Open Tests</button></Panel></div></>
-}
-
-function parseStashes(output?: string|null) { return (output??'').split('\n').map(line=>line.trim()).filter(Boolean).map(line=>{const [ref,subject=''] = line.split('\0'); return {ref,subject}}) }
-
-function GitActions({ repositoryId }: { repositoryId:number|null }) {
-  type StashPayload = import('./lib/api/client').GitActionPayload & { stash?: string }
-  type StashEntry = { ref: string; subject: string }
-  const [status,setStatus]=useState<import('./lib/api/client').GitStatus|null>(null); const [changes,setChanges]=useState<import('./lib/api/client').ChangesResponse|null>(null); const [selected,setSelected]=useState<string[]>([]); const [message,setMessage]=useState(''); const [branch,setBranch]=useState(''); const [branchConfirm,setBranchConfirm]=useState(false); const [stashMessage,setStashMessage]=useState(''); const [stashes,setStashes]=useState<StashEntry[]>([]); const [stashLoading,setStashLoading]=useState(false); const [busy,setBusy]=useState(false); const [receipt,setReceipt]=useState<import('./lib/api/client').GitActionReceipt|null>(null); const [error,setError]=useState('')
-  const refresh=async()=>{if(!repositoryId)return;setStashLoading(true);try{const [s,c,list]=await Promise.all([api.gitStatus(repositoryId),api.changes(repositoryId),api.gitAction(repositoryId,{action:'stash_list'})]);setStatus(s);setChanges(c);setSelected([]);setStashes(parseStashes(list.stdout_summary))}catch(e){setError(e instanceof Error?e.message:'Git status could not be refreshed.')}finally{setStashLoading(false)}}; useEffect(()=>{setStashes([]);refresh()},[repositoryId])
-  const act=async(payload:StashPayload)=>{if(!repositoryId||busy)return;setBusy(true);setError('');setReceipt(null);try{const result=await api.gitAction(repositoryId,payload);setReceipt(result);if(result.git)setStatus(result.git);if(result.status==='succeeded')await refresh()}catch(e){setError(e instanceof Error?e.message:'Git action failed.')}finally{setBusy(false)}}
-  if(!repositoryId)return <><PageHeader eyebrow="Operate / git actions" title="Git Actions" description="Select a repository to manage its working tree."/><div className="panel empty-files"><GitBranch size={24}/><strong>Select a repository</strong></div></>
-  const files=changes?.changed_files??[]
-  const stashPanel=<Panel title="Stashes"><input aria-label="Stash message" value={stashMessage} onChange={event=>setStashMessage(event.target.value)} placeholder="Work in progress"/><button className="button button-primary full" disabled={busy} onClick={()=>act({action:'stash_create',message:stashMessage})}>Create stash</button>{stashLoading?<div className="git-status-message"><Activity size={15}/>Loading stashes…</div>:stashes.length?stashes.map(stash=><div className="stash-row" key={stash.ref}><span><strong>{stash.ref}</strong><small>{stash.subject}</small></span><div><button className="button button-quiet" disabled={busy} onClick={()=>act({action:'stash_apply',stash:stash.ref})}>Apply</button><button className="button button-quiet" disabled={busy} onClick={()=>act({action:'stash_pop',stash:stash.ref,confirm:true})}>Pop</button><button className="button button-quiet" disabled={busy} onClick={()=>act({action:'stash_drop',stash:stash.ref,confirm:true})}>Drop</button></div></div>):<div className="empty-files"><Download size={18}/><span>No stashes found.</span></div>}</Panel>
-  return <><PageHeader eyebrow="Operate / git actions" title="Git Actions" description="Safe, explicit changes to the selected repository." action={<button className="button button-quiet" onClick={refresh} disabled={busy}><RefreshCw size={14}/> Refresh</button>}/>{receipt&&<div className={`action-receipt ${receipt.status}`} role="status"><strong>{receipt.status.toUpperCase()}</strong><span>{receipt.message}</span>{receipt.recovery_guidance&&<small>{receipt.recovery_guidance}</small>}{receipt.intelligence_stale&&<span className="muted">Scan to refresh intelligence.</span>}</div>}{error&&<div className="action-receipt failed" role="alert"><strong>ERROR</strong><span>{error}</span></div>}<div className="git-actions-grid"><Panel title={`Changed files · ${status?.branch??'unknown'}`} action={<span className="muted">{selected.length} selected</span>}><div className="git-action-files">{files.length?files.map(file=><label key={file.path}><input type="checkbox" checked={selected.includes(file.path)} onChange={()=>setSelected(current=>current.includes(file.path)?current.filter(path=>path!==file.path):[...current,file.path])}/><span><strong>{file.path}</strong><small>{file.status}</small></span><button className="button button-quiet" disabled={busy} onClick={()=>act({action:file.status==='??'||file.status.includes(' M')?'stage':'unstage',paths:[file.path]})}>{file.status==='??'||file.status.includes(' M')?'Stage':'Unstage'}</button></label>):<div className="empty-files"><ShieldCheck size={20}/><span>Working tree clean.</span></div>}</div></Panel><div className="git-action-stack"><Panel title="Commit staged scope"><textarea aria-label="Commit message" value={message} onChange={event=>setMessage(event.target.value)} placeholder="Describe the change" rows={3}/><button className="button button-primary full" disabled={busy||!message.trim()||!selected.length} onClick={()=>act({action:'commit',message,paths:selected})}><GitCommitHorizontal size={14}/> Commit ({selected.length})</button></Panel><Panel title="Branch"><input aria-label="Branch name" value={branch} onChange={event=>setBranch(event.target.value)} placeholder="feature/name"/><div className="button-row"><button className="button button-quiet" disabled={busy||!branch.trim()} onClick={()=>act({action:'branch_create',name:branch,start_point:'HEAD'})}>Create</button><button className="button button-quiet" disabled={busy||!branch.trim()} onClick={()=>setBranchConfirm(true)}>Switch</button></div></Panel><Panel title="Remote operations"><div className="button-row wrap"><button className="button button-quiet" disabled={busy} onClick={()=>act({action:'fetch',remote:'origin'})}><Download size={13}/> Fetch</button><button className="button button-quiet" disabled={busy} onClick={()=>act({action:'pull',remote:'origin',branch:status?.branch??'main'})}>Pull</button><button className="button button-quiet" disabled={busy} onClick={()=>act({action:'push',remote:'origin',branch:status?.branch??'main'})}><Upload size={13}/> Push</button></div></Panel>{stashPanel}</div></div>{branchConfirm && <AppDialog title="Switch branch?" message={`Switch to ${branch}?`} danger={false} onConfirm={()=>{setBranchConfirm(false);act({action:'branch_switch',name:branch,confirm_dirty:false})}} close={()=>setBranchConfirm(false)} />}</>
-}
-
-function TestsView({ repositoryId, setSelectedFileId, setPage }: { repositoryId: number | null; setSelectedFileId:(id:number)=>void; setPage:(p:Page)=>void }) { const [items,setItems]=useState<import('./lib/api/client').TestRelationship[]>([]);useEffect(()=>{if(repositoryId)api.files(repositoryId,{is_test:true,limit:500}).then(({items:files})=>Promise.all(files.map(test=>api.testSources(repositoryId,test.id)))).then(pages=>setItems(pages.flatMap(page=>page.items))).catch(()=>setItems([]))},[repositoryId]);return <><PageHeader eyebrow="Analyze / verification surface" title="Tests" description="Static associations only; tests are not executed."/><Panel title="Test relationships">{items.length?items.map(item=><button className="test-row" key={`${item.test_file_id}-${item.source_file_id}`} onClick={()=>{setSelectedFileId(item.source_file_id);setPage('File Detail')}}><strong>{item.test_path}</strong><span>{item.source_path}</span><Status tone={item.evidence_level==='strong'?'high':'medium'}>{item.evidence_level}</Status></button>):<div className="empty-files"><strong>No test relationships were detected</strong><span>RepoPilot checks direct imports and deterministic test/file naming conventions.</span></div>}</Panel></> }
-
-function HistoryView({ repositoryId, setPage, setSelectedCommit }: { repositoryId:number|null; setPage:(p:Page)=>void; setSelectedCommit:(sha:string)=>void }) {
-  const [data,setData]=useState<import('./lib/api/client').GitHistory|null>(null); const [loading,setLoading]=useState(false); const [error,setError]=useState('');
-  const load=async(page?:number)=>{if(!repositoryId)return;setLoading(true);setError('');try{const next=await api.git.history(repositoryId,page);setData(current=>page&&current?{...next,items:[...current.items,...next.items]}:next)}catch{setError('History unavailable.')}finally{setLoading(false)}}; useEffect(()=>{setData(null);load()},[repositoryId]);
-  if(!repositoryId)return <><PageHeader eyebrow="Explore / Git history" title="History" description="Recent commits and repository lineage."/><div className="panel empty-files"><GitBranch size={22}/><strong>Select a repository</strong></div></>;
-  if(loading&&!data)return <><PageHeader eyebrow="Explore / Git history" title="History" description="Recent commits and repository lineage."/><div className="panel empty-files"><Activity size={22}/><span>Loading history…</span></div></>;
-  if(error)return <><PageHeader eyebrow="Explore / Git history" title="History" description="Recent commits and repository lineage."/><div className="panel empty-files"><TriangleAlert size={22}/><strong>{error}</strong><button className="button button-quiet" onClick={()=>load()}>Try again</button></div></>;
-  if(!data)return <div className="panel empty-files"><Activity size={22}/><span>Loading history…</span></div>;
-  if(data.empty&&!data.items.length)return <div className="panel empty-files"><GitBranch size={22}/><strong>No commits found</strong><span>{data.detached?'Detached HEAD or empty repository.':'Commit history is unavailable for this path.'}</span></div>;
-  return <><PageHeader eyebrow="Explore / Git history" title="History" description="Recent commits and repository lineage." action={<span className="history-ref"><GitBranch size={14}/> {data.ref??(data.detached?'Detached HEAD':'HEAD')}</span>}/><Panel title="Recent commits"><div className="commit-list">{data.items.map(commit=><button className="commit-row" key={commit.sha} onClick={()=>{setSelectedCommit(commit.sha);setPage('Commit Detail')}}><span className="commit-mark">{commit.is_merge?'⤢':'●'}</span><span><strong>{commit.subject||'(no message)'}</strong><small>{commit.short_sha} · {commit.author} · {new Date(commit.committed_at).toLocaleString()}</small></span><b>{commit.changed_files} files <i>+{commit.additions}</i> <em>−{commit.deletions}</em></b></button>)}</div>{!data.items.length&&<div className="empty-files"><span>No commits found.</span></div>}{data.has_more&&<button className="button button-quiet" onClick={()=>load(data.page+1)} disabled={loading}>{loading?'Loading…':'Load older commits'}</button>}</Panel></>;
-}
-
-function CommitDetail({ repositoryId, sha, setPage, setSelectedFileId }: { repositoryId:number|null; sha:string|null; setPage:(p:Page)=>void; setSelectedFileId:(id:number)=>void }) { const [commit,setCommit]=useState<import('./lib/api/client').GitCommit|null>(null); const [error,setError]=useState(''); useEffect(()=>{if(repositoryId&&sha)api.git.commit(repositoryId,sha).then(setCommit).catch(()=>setError('Invalid or unavailable commit.'))},[repositoryId,sha]); if(!repositoryId||!sha)return <div className="panel empty-files"><TriangleAlert size={22}/><strong>Invalid commit</strong><button className="button button-quiet" onClick={()=>setPage('History')}>Back to history</button></div>; if(error)return <div className="panel empty-files"><TriangleAlert size={22}/><strong>{error}</strong><button className="button button-quiet" onClick={()=>setPage('History')}>Back to history</button></div>; if(!commit)return <div className="panel empty-files"><Activity size={22}/><span>Loading commit…</span></div>; return <><PageHeader eyebrow="Explore / Git history / commit" title={commit.subject||'(no message)'} description={`${commit.short_sha} · ${commit.author} · ${commit.committed_at?new Date(commit.committed_at).toLocaleString():'unknown time'}${commit.is_merge?' · merge commit':''}`} action={<button className="button button-quiet" onClick={()=>setPage('History')}>Back to history</button>}/><div className="metrics-grid change-metrics"><Metric label="Files changed" value={String(commit.changed_files)} detail="Changed paths" icon={FileCode2} accent="cyan"/><Metric label="Additions" value={`+${commit.additions}`} detail="Lines added" icon={ArrowUpRight} accent="green"/><Metric label="Deletions" value={`-${commit.deletions}`} detail="Lines removed" icon={ArrowDownLeft} accent="red"/><Metric label="Type" value={commit.is_merge?'MERGE':'COMMIT'} detail={`${commit.parents.length} parent${commit.parents.length===1?'':'s'}`} icon={GitBranch} accent="violet"/></div><Panel title="Changed files"><div className="change-file-list">{commit.files.map(file=><button className="change-file-row" key={file.path} onClick={()=>{if(file.file_id){setSelectedFileId(file.file_id);setPage('File Detail')}}}><strong>{file.path}</strong><small>{file.status} · +{file.additions} · −{file.deletions}{file.old_path?` · from ${file.old_path}`:''}</small></button>)}</div></Panel></> }
-
-function CommandPalette({ close, setPage }: { close: () => void; setPage: (p: Page) => void }) { const [query,setQuery]=useState(''); const commands: [Page, typeof LayoutDashboard][] = [['Dashboard', LayoutDashboard], ['Files', Folder], ['Dependency Graph', Network], ['Search', Search], ['Impact Analysis', Activity], ['Hotspots', TriangleAlert], ['Tests', TestTube2], ['History', GitBranch], ['Change Intelligence', GitBranch], ['Git Actions', GitCommitHorizontal]]; const filtered=commands.filter(([label])=>label.toLowerCase().includes(query.trim().toLowerCase())); return <div className="modal-backdrop" role="presentation" onMouseDown={close}><div className="command-palette" role="dialog" aria-modal="true" aria-label="Command palette" onMouseDown={e => e.stopPropagation()}><div className="palette-search"><Search size={17} /><input aria-label="Filter commands" autoFocus value={query} onChange={event=>setQuery(event.target.value)} placeholder="Jump to a view or search..." /><kbd>ESC</kbd></div><div className="palette-label">NAVIGATION · {filtered.length}</div>{filtered.length?filtered.map(([label, Icon], index) => <button className={`palette-row ${index === 0 ? 'selected' : ''}`} key={label} onClick={() => { setPage(label); close() }}><Icon size={16} /><span>{label}</span>{index === 0 && <kbd>↵</kbd>}</button>):<div className="palette-empty">No matching workspace.</div>}<div className="palette-footer"><span><ArrowDownLeft size={13} /> Navigate</span><span><ArrowUpRight size={13} /> Open</span><span><X size={13} /> Close</span></div></div></div> }
-
-export default App
-function DashboardCockpit({ setPage, repositoryId, onAddRepository }: { setPage: (p: Page) => void; repositoryId: number | null; onAddRepository: () => void }) {
-  const [overview, setOverview] = useState<import('./lib/api/client').Overview | null>(null)
-  const [scan, setScan] = useState<Scan | null>(null)
-  const [error, setError] = useState('')
-  useEffect(() => { setOverview(null); setScan(null); setError(''); if (repositoryId) Promise.all([api.overview(repositoryId), api.latestScan(repositoryId)]).then(([o, s]) => { setOverview(o); setScan(s) }).catch(() => setError('No READY snapshot available')) }, [repositoryId])
-  if (!repositoryId) return <><PageHeader eyebrow="Repository cockpit" title="Start with a codebase signal." description="Register a repository to map its structure, changes, and risk." action={<button className="button button-primary" onClick={onAddRepository}>Add repository</button>} /><div className="cockpit-empty panel"><div className="cockpit-empty-icon"><Folder size={25} /></div><div><strong>No repository selected</strong><p>Register a local repository to build an intelligence snapshot.</p><button className="button button-primary" onClick={onAddRepository}>Register repository <ArrowUpRight size={14} /></button></div><div className="next-step"><b>Register</b><small>Choose a local path</small></div><div className="next-step"><b>Scan</b><small>Build a READY snapshot</small></div></div></>
-  if (!overview) return <><PageHeader eyebrow="Repository cockpit" title="Prepare your intelligence workspace." description="The repository is registered, but its READY snapshot is not available yet." action={<button className="button button-primary" onClick={() => setPage('Files')}>Open Files & scan</button>} />{error && <div className="error-line">{error}</div>}<div className="cockpit-empty panel"><div className="cockpit-empty-icon"><Activity size={25} /></div><div><strong>Scan required before intelligence is ready</strong><p>Open Files to start or monitor the repository scan. Metrics appear after the first READY snapshot.</p><button className="button button-primary" onClick={() => setPage('Files')}>Go to scan flow <ArrowUpRight size={14} /></button></div><div className="readiness-rail"><Status tone="medium">NOT READY</Status><span>Snapshot status</span><small>{scan?.status ?? 'No snapshot found'}</small></div></div></>
   return <>
-    <PageHeader eyebrow="Repository cockpit" title="See the system before you change it." description="A live telemetry surface for repository structure, readiness, and change risk." action={<button className="button button-primary" onClick={() => setPage('Files')}>Explore files</button>} />
-    <div className="cockpit-identity telemetry-banner"><div className="identity-mark"><Terminal size={21} /></div><div><span>ACTIVE CODEBASE</span><strong>{overview.snapshot_id ? `Snapshot ${overview.snapshot_id}` : 'Snapshot unavailable'}</strong><small>{scan?.status === 'ready' ? 'Analysis is current and the intelligence surface is available.' : 'Repository intelligence is not ready.'}</small></div><Status>{scan?.status === 'ready' ? 'READY' : (scan?.status ?? 'UNKNOWN').toUpperCase()}</Status></div>
-    <div className="telemetry-rail"><div><span>Indexed surface</span><strong>{overview.file_count}</strong><small>files</small></div><div><span>Source volume</span><strong>{overview.total_lines.toLocaleString()}</strong><small>lines</small></div><div><span>Symbol map</span><strong>{overview.symbol_count}</strong><small>symbols</small></div><div><span>Dependency map</span><strong>{overview.dependency_count}</strong><small>relationships</small></div><div><span>Test surface</span><strong>{overview.test_file_count}</strong><small>detected files</small></div></div>
-    <div className="cockpit-layout">
-      <div className="cockpit-main"><GitStatusPanel repositoryId={repositoryId} /><Panel title="Intelligence workbench" className="intelligence-panel"><div className="workbench-links"><button onClick={() => setPage('Dependency Graph')}><span className="workbench-icon cyan"><Network size={17} /></span><span><b>Dependency graph</b><small>Trace modules and repository relationships</small></span><ChevronRight size={15} /></button><button onClick={() => setPage('Impact Analysis')}><span className="workbench-icon violet"><Activity size={17} /></span><span><b>Impact analysis</b><small>Start from a real file and follow affected paths</small></span><ChevronRight size={15} /></button><button onClick={() => setPage('Hotspots')}><span className="workbench-icon amber"><TriangleAlert size={17} /></span><span><b>Structural hotspots</b><small>Review real concentration and risk signals</small></span><ChevronRight size={15} /></button><button onClick={() => setPage('Tests')}><span className="workbench-icon mint"><TestTube2 size={17} /></span><span><b>Verification surface</b><small>Inspect static test/source relationships</small></span><ChevronRight size={15} /></button></div></Panel></div>
-      <aside className="cockpit-side"><Panel title="Current changes" action={<button className="text-action" onClick={() => setPage('Change Intelligence')}>Open <ArrowUpRight size={13} /></button>}><div className="side-callout"><GitBranch size={17} /><div><b>Change intelligence</b><span>Assess working-tree scope and risk.</span></div></div></Panel><Panel title="Fast paths"><button className="fast-path" onClick={() => setPage('Search')}><Search size={15} />Search code <ChevronRight size={14} /></button><button className="fast-path" onClick={() => setPage('History')}><GitCommitHorizontal size={15} />Review history <ChevronRight size={14} /></button><button className="fast-path" onClick={() => setPage('Git Actions')}><GitCommitHorizontal size={15} />Open Git console <ChevronRight size={14} /></button></Panel></aside>
-    </div>
+    <ObsidianTelemetryShell
+      repository={selectedRepository ?? undefined}
+      currentPage={page}
+      onNavigate={navigate}
+      sidebarCollapsed={sidebarCollapsed}
+      onToggleSidebar={() => setSidebarCollapsed(value => !value)}
+      onRepositoryPopover={() => setRepositoryMenuOpen(value => !value)}
+      onCommandPalette={() => setPaletteOpen(true)}
+      onRescan={() => void rescan()}
+    >
+      <div className="rp-workspace-wrap">
+        {feedback && <div className="rp-feedback" role="status"><Activity size={14} />{feedback}<button onClick={() => setFeedback('')} aria-label="Dismiss feedback"><X size={14} /></button></div>}
+        {view}
+      </div>
+    </ObsidianTelemetryShell>
+    {repositoryMenuOpen && <RepositoryPopover repositories={repositories} activeId={repositoryId} anchorRef={repositoryMenuRef} onSelect={id => { setRepositoryId(id); setPage('Dashboard'); setRepositoryMenuOpen(false) }} onAdd={() => { setRepositoryMenuOpen(false); openOnboarding() }} />}
+    {paletteOpen && <CommandPalette onClose={() => setPaletteOpen(false)} onNavigate={navigate} onOpenOnboarding={openOnboarding} />}
+    {onboardingOpen && <OnboardingOverlay mode={onboardingMode} onComplete={finishOnboarding} onClose={() => setOnboardingOpen(false)} />}
   </>
 }
+
+function OnboardingOverlay({ mode, onComplete, onClose }: { mode: EntryMode; onComplete: (repository: Repository, focus?: string) => void; onClose: () => void }) {
+  return <div className="rp-overlay"><div className="rp-overlay-card"><button className="rp-overlay-close" onClick={onClose} aria-label="Close onboarding"><X size={16} /></button><OnboardingPanel initialMode={mode} onComplete={onComplete} onCancel={onClose} /></div></div>
+}
+
+function RepositoryPopover({ repositories, activeId, anchorRef, onSelect, onAdd }: { repositories: Repository[]; activeId: number | null; anchorRef: RefObject<HTMLDivElement | null>; onSelect: (id: number) => void; onAdd: () => void }) {
+  return <div className="rp-repository-popover" ref={anchorRef} role="dialog" aria-label="Registered repositories"><div className="rp-popover-kicker">Workspace repositories</div>{repositories.length ? repositories.map(repository => <button className={`rp-repository-option ${repository.id === activeId ? 'is-active' : ''}`} key={repository.id} onClick={() => onSelect(repository.id)}><GitBranch size={14} /><span><strong>{repository.name}</strong><small>{repository.branch || 'no branch'} · {repository.path}</small></span>{repository.id === activeId && <b>ACTIVE</b>}</button>) : <div className="rp-popover-empty">No repositories registered.</div>}<button className="rp-popover-add" onClick={onAdd}>+ Add repository</button></div>
+}
+
+function CommandPalette({ onClose, onNavigate, onOpenOnboarding }: { onClose: () => void; onNavigate: (page: string) => void; onOpenOnboarding: (mode?: EntryMode) => void }) {
+  const [query, setQuery] = useState('')
+  const commands = [
+    ...pageGroups.flatMap(group => group.pages.map(page => ({ page, group: group.label, icon: group.icon }))),
+    { page: 'Onboarding' as Page, group: 'Actions', icon: Terminal },
+  ]
+  const filtered = commands.filter(command => command.page.toLowerCase().includes(query.toLowerCase()) || command.group.toLowerCase().includes(query.toLowerCase()))
+  return <div className="rp-palette-backdrop" onMouseDown={onClose}><div className="rp-palette" role="dialog" aria-modal="true" aria-label="Command palette" onMouseDown={event => event.stopPropagation()}><div className="rp-palette-search"><Search size={16} /><input autoFocus value={query} onChange={event => setQuery(event.target.value)} placeholder="Jump to a workspace or action…" /><kbd>ESC</kbd></div><div className="rp-palette-body">{filtered.length ? filtered.map(command => <button key={command.page} className="rp-palette-row" onClick={() => { command.page === 'Onboarding' ? onOpenOnboarding() : onNavigate(command.page); onClose() }}><command.icon size={15} /><span><strong>{command.page}</strong><small>{command.group}</small></span><kbd>↵</kbd></button>) : <div className="rp-palette-empty">No matching workspace.</div>}</div><footer><span>↑↓ Navigate</span><span>↵ Open</span><span>Esc Close</span><span><Command size={11} /> K</span></footer></div></div>
+}
+
+function renderPage({ page, repository, repositoryId, selectedFileId, selectedCommit, setPage, setSelectedCommit, selectFile }: {
+  page: Page
+  repository: Repository | null
+  repositoryId: number | null
+  selectedFileId: number | null
+  selectedCommit: string | null
+  setPage: (page: Page) => void
+  setSelectedCommit: (sha: string) => void
+  selectFile: (fileId: number) => void
+}) {
+  switch (page) {
+    case 'Dashboard': return <RepositoryCockpit repository={repository} />
+    case 'Files': return <FilesExplorer repositoryId={repositoryId} onSelectFile={selectFile} />
+    case 'File Detail': return <FileDetailSource repositoryId={repositoryId} fileId={selectedFileId} />
+    case 'Search': return <SearchWorkspace repositoryId={repositoryId} onSelectFile={selectFile} />
+    case 'Dependency Graph': return <DependencyGraphWorkspace repositoryId={repositoryId} rootFileId={selectedFileId} />
+    case 'Impact Analysis': return <ImpactWorkspace repositoryId={repositoryId} fileId={selectedFileId} />
+    case 'Hotspots': return <HotspotsWorkspace repositoryId={repositoryId} onSelectFile={selectFile} />
+    case 'Tests': return <TestsWorkspace repositoryId={repositoryId} onSelectFile={selectFile} />
+    case 'Status': return <GitStatusPanel repositoryId={repositoryId} />
+    case 'Change Intelligence': return <ChangeIntelligencePanel repositoryId={repositoryId} />
+    case 'Git Actions': return <GitActionsPanel repositoryId={repositoryId} />
+    case 'Stash': return <GitActionsPanel repositoryId={repositoryId} />
+    case 'History': return <HistoryPanel repositoryId={repositoryId} onSelect={sha => { setSelectedCommit(sha); setPage('Commit Detail') }} />
+    case 'Commit Detail': return <CommitDetailPanel repositoryId={repositoryId} sha={selectedCommit} />
+    case 'File History': return <FileHistoryPanel repositoryId={repositoryId} fileId={selectedFileId} />
+    case 'Compare': return <CompareWorkspace repositoryId={repositoryId} />
+    case 'Onboarding': return <WorkspaceState kind="empty">Use the repository selector to connect a project.</WorkspaceState>
+    default: return <RepositoryCockpit repository={repository} />
+  }
+}
+
+function CompareWorkspace({ repositoryId }: { repositoryId: number | null }) {
+  const [base, setBase] = useState('HEAD~1')
+  return <><WorkspaceHeader eyebrow="Git / compare" title="Compare" detail="Review a deterministic file-level comparison between two refs." action={<input aria-label="Base ref" value={base} onChange={event => setBase(event.target.value)} placeholder="Base ref" />} /><ComparePanel repositoryId={repositoryId} base={base} /></>
+}
+
+export default App
