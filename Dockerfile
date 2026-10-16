@@ -25,4 +25,4 @@ RUN useradd --create-home --uid 10001 repopilot && mkdir -p /app/data && chown -
 USER repopilot
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:3000/api/v1/health')"
-CMD ["uv", "run", "--directory", "backend", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "3000"]
+CMD ["uv", "run", "--directory", "backend", "--no-sync", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "3000"]

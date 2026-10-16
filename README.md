@@ -127,7 +127,8 @@ npm --prefix frontend run build
 The Dockerfile uses Node 22 and Python 3.12, installs the locked frontend and
 backend dependencies, serves the built frontend through FastAPI, and runs as a
 non-root user. The initial image build needs network access to download base
-images and packages.
+images and packages; the runtime uses the frozen environment from the image and
+does not re-sync dependencies on startup.
 
 ```bash
 docker build -t repopilot:local .
