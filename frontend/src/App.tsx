@@ -225,7 +225,7 @@ function renderPage({ page, repository, repositoryId, selectedFileId, selectedCo
     case 'Files': return <FilesExplorer repositoryId={repositoryId} onSelectFile={selectFile} />
     case 'File Detail': return <FileDetailSource repositoryId={repositoryId} fileId={selectedFileId} />
     case 'Search': return <SearchWorkspace repositoryId={repositoryId} onSelectFile={selectFile} />
-    case 'Dependency Graph': return <DependencyGraphWorkspace repositoryId={repositoryId} rootFileId={selectedFileId} />
+    case 'Dependency Graph': return <DependencyGraphWorkspace repositoryId={repositoryId} rootFileId={selectedFileId} onSelectFile={selectFile} />
     case 'Impact Analysis': return <ImpactWorkspace repositoryId={repositoryId} fileId={selectedFileId} />
     case 'Hotspots': return <HotspotsWorkspace repositoryId={repositoryId} onSelectFile={selectFile} />
     case 'Tests': return <TestsWorkspace repositoryId={repositoryId} onSelectFile={selectFile} />
