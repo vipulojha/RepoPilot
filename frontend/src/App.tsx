@@ -80,6 +80,7 @@ function App() {
   const [selectedCommit, setSelectedCommit] = useState<string | null>(null)
   const [dialog, setDialog] = useState<{ title: string; message: string; fields?: string[]; danger?: boolean; onConfirm: (values: string[]) => void } | null>(null)
   const [onboarding, setOnboarding] = useState(false)
+  const [onboardingMode, setOnboardingMode] = useState<'local'|'github'|'file'>('local')
   const selectedRepository = repositories.find(item => item.id === repositoryId)
 
   useEffect(() => {
@@ -87,7 +88,7 @@ function App() {
     api.repositories().then(({items}) => { setRepositories(items); setRepositoryId(current => current && items.some(item => item.id === current) ? current : items[0]?.id ?? null) }).catch(() => setRepositories([]))
   }, [])
   useEffect(() => { if (repositoryId) localStorage.setItem('repopilot.repositoryId', String(repositoryId)) }, [repositoryId])
-  const addRepository = () => setOnboarding(true)
+  const addRepository = (mode: 'local'|'github'|'file' = 'local') => { setOnboardingMode(mode); setOnboarding(true) }
   const removeRepository = () => { if (!repositoryId) return; setDialog({ title: 'Remove repository registration?', message: 'Source files will not be deleted. This only removes the RepoPilot registration.', danger: true, onConfirm: async () => { await api.deleteRepository(repositoryId); const next = repositories.filter(item => item.id !== repositoryId); setRepositories(next); setRepositoryId(next[0]?.id ?? null) } }) }
 
   useEffect(() => {
@@ -105,10 +106,10 @@ function App() {
       <header className="topbar">
         <button className="icon-button mobile-menu" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Toggle navigation"><Menu size={17} /></button>
         <div className="crumb"><span className="crumb-repo"><Braces size={15} /> {selectedRepository?.name ?? 'RepoPilot'}</span><ChevronRight size={13} /><span>{selectedRepository?.branch ?? 'no branch'}</span><ChevronRight size={13} /><span className="muted">{page}</span></div>
-         <div className="top-actions"><select aria-label="Select repository" className="filter-button repository-select" value={repositoryId ?? ''} onChange={event => setRepositoryId(Number(event.target.value) || null)}><option value="">No repository</option>{repositories.map(repo => <option value={repo.id} key={repo.id}>{repo.name}</option>)}</select><button className="button button-quiet workspace-action" onClick={addRepository}>Add</button><button className="button button-quiet workspace-action" onClick={removeRepository} disabled={!repositoryId}>Remove</button><button className="command-trigger" onClick={() => setPaletteOpen(true)} aria-label="Open command palette"><Search size={15} /><span>Jump to anything</span><kbd>⌘ K</kbd></button></div>
+         <div className="top-actions"><select aria-label="Select repository" className="filter-button repository-select" value={repositoryId ?? ''} onChange={event => setRepositoryId(Number(event.target.value) || null)}><option value="">No repository</option>{repositories.map(repo => <option value={repo.id} key={repo.id}>{repo.name}</option>)}</select><button className="button button-quiet workspace-action" onClick={() => addRepository('local')}>Add</button><button className="button button-quiet workspace-action" onClick={removeRepository} disabled={!repositoryId}>Remove</button><button className="command-trigger" onClick={() => setPaletteOpen(true)} aria-label="Open command palette"><Search size={15} /><span>Jump to anything</span><kbd>⌘ K</kbd></button></div>
       </header>
       <div className="content-wrap">
-        {page === 'Dashboard' && !repositoryId && repositories.length === 0 ? <Suspense fallback={<div className="welcome-loading">Loading RepoPilot…</div>}><WelcomeExperience onAddRepository={addRepository} onExplore={() => document.getElementById('welcome-how')?.scrollIntoView({ behavior: 'smooth' })} /></Suspense> : page === 'Dashboard' && <DashboardCockpit setPage={setPage} repositoryId={repositoryId} onAddRepository={addRepository} />}
+        {page === 'Dashboard' && !repositoryId && repositories.length === 0 ? <Suspense fallback={<div className="welcome-loading">Loading RepoPilot…</div>}><WelcomeExperience onStart={addRepository} onExplore={() => document.getElementById('welcome-how')?.scrollIntoView({ behavior: 'smooth' })} /></Suspense> : page === 'Dashboard' && <DashboardCockpit setPage={setPage} repositoryId={repositoryId} onAddRepository={() => addRepository('local')} />}
         {page === 'Files' && <FilesView setPage={setPage} repositoryId={repositoryId} setSelectedFileId={setSelectedFileId} />}
         {page === 'File Detail' && <FileHub setPage={setPage} repositoryId={repositoryId} fileId={selectedFileId} />}
         {page === 'History' && <HistoryView repositoryId={repositoryId} setPage={setPage} setSelectedCommit={setSelectedCommit} />}
@@ -123,7 +124,7 @@ function App() {
       </div>
     </main>
     {paletteOpen && <CommandPalette close={() => setPaletteOpen(false)} setPage={setPage} />}
-    {onboarding && <OnboardingDialog close={() => setOnboarding(false)} setRepositories={setRepositories} setRepositoryId={setRepositoryId} setSelectedFileId={setSelectedFileId} setPage={setPage} />}
+    {onboarding && <OnboardingDialog initialMode={onboardingMode} close={() => setOnboarding(false)} setRepositories={setRepositories} setRepositoryId={setRepositoryId} setSelectedFileId={setSelectedFileId} setPage={setPage} />}
      {dialog && <AppDialog {...dialog} close={() => setDialog(current => current === dialog ? null : current)} />}
   </div>
 }
@@ -153,8 +154,8 @@ function AppDialog({ title, message, fields, danger, onConfirm, close }: { title
   return <div className="modal-backdrop" role="presentation"><div className="app-dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title"><div className="dialog-context">REPO PILOT / ACTION</div><h2 id="dialog-title">{title}</h2><p>{message}</p>{fields?.map((field, index) => <label key={field}>{field}<input autoFocus={index === 0} value={values[index] ?? ''} onChange={event => { setError(''); setValues(current => current.map((value, i) => i === index ? event.target.value : value)) }} disabled={busy} /></label>)}{error && <div className="dialog-error" role="alert">{error}</div>}<div className="dialog-actions"><button className="button button-quiet" onClick={close} disabled={busy}>Cancel</button><button className={`button ${danger ? 'button-danger' : 'button-primary'}`} onClick={confirm} disabled={busy}>{busy ? 'Working…' : danger ? 'Remove' : 'Continue'}</button></div></div></div>
 }
 
-function OnboardingDialog({ close, setRepositories, setRepositoryId, setSelectedFileId, setPage }: { close: () => void; setRepositories: React.Dispatch<React.SetStateAction<import('./lib/api/client').Repository[]>>; setRepositoryId: (id: number) => void; setSelectedFileId: (id: number) => void; setPage: (page: Page) => void }) {
-  const [mode, setMode] = useState<'local'|'github'|'file'>('local')
+function OnboardingDialog({ initialMode, close, setRepositories, setRepositoryId, setSelectedFileId, setPage }: { initialMode: 'local'|'github'|'file'; close: () => void; setRepositories: React.Dispatch<React.SetStateAction<import('./lib/api/client').Repository[]>>; setRepositoryId: (id: number) => void; setSelectedFileId: (id: number) => void; setPage: (page: Page) => void }) {
+  const [mode, setMode] = useState<'local'|'github'|'file'>(initialMode)
   const [path, setPath] = useState(''); const [url, setUrl] = useState(''); const [destination, setDestination] = useState('/tmp/repopilot-clones/repository'); const [name, setName] = useState(''); const [inspect, setInspect] = useState<import('./lib/api/client').OnboardingInspection|null>(null); const [initialize, setInitialize] = useState(true); const [busy, setBusy] = useState(false); const [error, setError] = useState('')
   const submit = async () => { setBusy(true); setError(''); try { if (mode === 'github') { const result = await api.cloneRepository({url, destination}); await complete(result.repository); return } const result = await api.inspectPath({kind: mode === 'file' ? 'file' : 'folder', path}); setInspect(result); if (!result.exists) throw new Error('That path does not exist.'); if (mode === 'file' && !result.repository_root) { if (!result.standalone_supported) throw new Error('This file is not supported for standalone inspection.'); throw new Error('Standalone file inspection is not available in the repository workspace yet.'); } const repoPath = result.repository_root ?? result.canonical_path ?? path; const repo = await api.onboardRepository({path: repoPath, name: name || result.repository_name || undefined, initialize_git: mode === 'local' && !result.is_git_repository && initialize}); await complete(repo, mode === 'file' ? result.canonical_path ?? path : undefined) } catch (e) { setError(e instanceof Error ? e.message : 'Unable to add this project.') } finally { setBusy(false) } }
   const complete = async (repo: import('./lib/api/client').Repository, focus?: string) => { setRepositories(items => items.some(item => item.id === repo.id) ? items : [...items, repo]); setRepositoryId(repo.id); let scan; try { scan = await api.latestScan(repo.id) } catch { scan = await api.startScan(repo.id) } if (scan.status === 'ready' && focus) { const files = await api.files(repo.id); const relative = focus.replace(repo.path, '').replace(/^[/\\]+/, '').replace(/\\/g,'/'); const file = files.items.find(item => item.relative_path === relative); if (file) { setSelectedFileId(file.id); setPage('File Detail') } } close() }
