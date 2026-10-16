@@ -90,7 +90,7 @@ frontend/src/lib/api/client.ts              # preserve existing health/repositor
 frontend/src/App.tsx                         # Files route integration only; preserve visual markup/styles
 frontend/src/vite-env.d.ts                  # only if new env typing is needed
 README.md
-docs/api-design.md
+frontend/src/lib/api/client.ts and backend/app/api/v1/
 ```
 
 No application source file should be modified outside this map. Do not add
@@ -596,7 +596,7 @@ required by an observed container failure.
 
 ### TASK 17 — Documentation
 
-**Files:** `README.md`, `docs/api-design.md`.
+**Files:** `README.md`, `frontend/src/lib/api/client.ts`, and `backend/app/api/v1/`.
 
 - [ ] Document actual scan and file routes, request/response shapes, polling,
       READY snapshot semantics, pagination, and failure preservation.

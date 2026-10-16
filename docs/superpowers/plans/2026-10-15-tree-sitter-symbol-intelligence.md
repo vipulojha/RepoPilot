@@ -76,7 +76,7 @@ Files: `backend/app/api/v1/symbols.py`, `backend/app/main.py`,
 
 ### 8. Fixtures, documentation, and review
 
-Files: `backend/tests/fixtures/symbols/*`, `README.md`, `docs/api-design.md`,
+Files: `backend/tests/fixtures/symbols/*`, `README.md`, `frontend/src/lib/api/client.ts`,
 design/plan documents as needed.
 
 - [ ] Add deterministic fixtures for every supported language and failure case.

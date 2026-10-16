@@ -335,9 +335,9 @@ successful snapshot.
 
 ## 9. API and UI architecture
 
-The API surface is defined in [`api-design.md`](api-design.md). The screen,
-navigation, component, and interaction design is defined in
-[`ui-design.md`](ui-design.md). Frontend routes are URL-addressable and carry
+The API surface is defined by the typed client in
+`frontend/src/lib/api/client.ts` and the FastAPI routers under
+`backend/app/api/v1/`. Frontend routes are URL-addressable and carry
 `repositoryId`, `snapshotId`, and relevant entity/query parameters.
 
 State approach: server state uses a small query/cache layer (TanStack Query is
@@ -348,7 +348,8 @@ client module; views consume hooks, not raw `fetch`.
 
 Loading states are skeleton rows/panels plus scan progress. Empty states explain
 the next action. Errors preserve the last useful data and expose retry/details.
-Keyboard shortcuts and responsive behavior are specified in `ui-design.md`.
+Keyboard shortcuts and responsive behavior are maintained with the active
+frontend implementation.
 
 ## 10. Docker architecture
 

@@ -41,7 +41,7 @@
 
 ### 5. Documentation and security review
 
-- Update `README.md` and `docs/api-design.md` with supported actions,
+- Update `README.md` and `frontend/src/lib/api/client.ts` with supported actions,
   prerequisites, confirmation/dirty-tree behavior, remote credential limits,
   conflict handling, stale snapshots, and deferred operations.
 - Review for shell injection, path traversal, hooks, mutation leaks, force push,
