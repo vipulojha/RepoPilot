@@ -179,6 +179,7 @@ textarea,
 .git-actions-grid { gap: 12px; }
 .git-action-files { min-height: 180px; }
 .commit-list { overflow: hidden; }
+.palette-empty { padding: 22px 16px; color: var(--obsidian-muted); font: 11px var(--obsidian-mono); }
 .impact-pipeline { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr); align-items: stretch; margin-bottom: 12px; border: 1px solid var(--obsidian-border-strong); background: var(--obsidian-panel); }
 .impact-stage { min-width: 0; padding: 15px; border-right: 1px solid var(--obsidian-border); }
 .impact-stage:last-child { border-right: 0; }
