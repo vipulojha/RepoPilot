@@ -224,6 +224,9 @@ textarea,
 .repo-banner-icon,
 .identity-mark { background: color-mix(in srgb, var(--obsidian-cyan) 18%, var(--obsidian-panel)); color: var(--obsidian-cyan); }
 .flow-node { background: var(--obsidian-raised); border-color: var(--obsidian-border-focus); }
+.flow-node.is-test { border-color: var(--obsidian-mint); }
+.graph-canvas .react-flow__edge.edge-transitive .react-flow__edge-path { stroke: var(--obsidian-violet); stroke-dasharray: 5 4; }
+.graph-canvas .react-flow__edge.edge-direct .react-flow__edge-path { stroke: var(--obsidian-cyan); }
 .flow-node small,
 .result-main small,
 .file-row small,
@@ -254,4 +257,13 @@ textarea,
     animation-duration: .01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+@media (max-width: 620px) {
+  .top-actions { min-width: 0; }
+  .workspace-action { display: none; }
+  .repository-select { max-width: 150px; min-width: 0; }
+  .content-wrap { padding-left: 12px; padding-right: 12px; }
+  .graph-toolbar { flex-wrap: wrap; }
+  .graph-toolbar .toolbar-spacer { display: none; }
 }
