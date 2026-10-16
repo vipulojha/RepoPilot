@@ -14,7 +14,14 @@ export const FilesView: React.FC<{ onSelectFile?: (id: number) => void; selected
   const [filterQuery, setFilterQuery] = useState('');
   const [sortBy, setSortBy] = useState<'path' | 'lines' | 'risk'>('path');
   const [selectedFile, setSelectedFile] = useState<string>('');
-  const sourceFiles: FileRow[] = (handoffData?.files ?? []).map(file => ({ id: String(file.id), path: file.relative_path, name: file.name, language: file.language || file.extension || 'Unknown', languageColor: '#00F2FE', fileSize: `${file.size_bytes ?? 0} B`, lines: file.line_count ?? 0, fanIn: null, impactRisk: 'Low' }));
+  const graphByFile = new Map((handoffData?.graph.nodes ?? []).map(node => [node.id, node]));
+  const hotspotByFile = new Map((handoffData?.hotspots ?? []).map(item => [item.file_id, item]));
+  const sourceFiles: FileRow[] = (handoffData?.files ?? []).map(file => {
+    const graphNode = graphByFile.get(file.id);
+    const hotspot = hotspotByFile.get(file.id);
+    const risk: FileRow['impactRisk'] = hotspot ? hotspot.score >= 67 ? 'High' : hotspot.score >= 34 ? 'Medium' : 'Low' : 'Low';
+    return { id: String(file.id), path: file.relative_path, name: file.name, language: file.language || file.extension || 'Unknown', languageColor: file.is_test ? '#FFB703' : '#00F2FE', fileSize: `${file.size_bytes ?? 0} B`, lines: file.line_count ?? 0, fanIn: graphNode?.incoming ?? null, impactRisk: risk };
+  });
   useEffect(() => {
     const current = sourceFiles.find(file => Number(file.id) === selectedFileId);
     if (current) setSelectedFile(current.path);

@@ -10,7 +10,7 @@ import {
 import { Button } from '../components/ui/Button';
 import { api, type ImpactItem } from '../lib/api/client';
 
-export const ImpactAnalysisView: React.FC<{ repositoryId: number | null; selectedFileId: number | null }> = ({ repositoryId, selectedFileId }) => {
+export const ImpactAnalysisView: React.FC<{ repositoryId: number | null; selectedFileId: number | null; onSelectFile?: (fileId: number) => void }> = ({ repositoryId, selectedFileId, onSelectFile }) => {
   const [isTracingActive, setIsTracingActive] = useState<boolean>(true);
   const [state, setState] = useState<{ loading: boolean; error: string | null; data: Awaited<ReturnType<typeof api.impact>> | null }>({ loading: false, error: null, data: null });
   useEffect(() => {
@@ -184,8 +184,10 @@ export const ImpactAnalysisView: React.FC<{ repositoryId: number | null; selecte
 
             <div className="space-y-4">
               {state.loading ? <div className="text-[11px] text-[#94A3B8]">Loading direct consumers…</div> : direct.length ? direct.map((consumer, idx) => (
-                <div
+                <button
                   key={idx}
+                  type="button"
+                  onClick={() => onSelectFile?.(consumer.file_id)}
                   className="p-3 bg-[#111622] border border-[#1E2638] hover:border-[#00F2FE]/60 transition-colors"
                 >
                   <div className="flex items-center justify-between mb-1">
@@ -199,7 +201,7 @@ export const ImpactAnalysisView: React.FC<{ repositoryId: number | null; selecte
                   <div className="text-[11px] text-[#94A3B8]">
                      Depth {consumer.depth} • {consumer.evidence.length} evidence item{consumer.evidence.length === 1 ? '' : 's'}
                   </div>
-                </div>
+                </button>
               )) : empty}
             </div>
           </div>
@@ -212,8 +214,10 @@ export const ImpactAnalysisView: React.FC<{ repositoryId: number | null; selecte
 
             <div className="space-y-4">
               {state.loading ? <div className="text-[11px] text-[#94A3B8]">Loading transitive consumers…</div> : transitive.length ? transitive.map((egress, idx) => (
-                <div
+                <button
                   key={idx}
+                  type="button"
+                  onClick={() => onSelectFile?.(egress.file_id)}
                   className="p-3 bg-[#111622] border border-[#1E2638] hover:border-[#9D4EDD]/60 transition-colors"
                 >
                   <div className="flex items-center justify-between mb-1">
@@ -227,7 +231,7 @@ export const ImpactAnalysisView: React.FC<{ repositoryId: number | null; selecte
                   <div className="text-[11px] text-[#94A3B8]">
                      Depth {egress.depth} • {egress.evidence.length} evidence item{egress.evidence.length === 1 ? '' : 's'}
                   </div>
-                </div>
+                </button>
               )) : empty}
             </div>
           </div>

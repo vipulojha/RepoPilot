@@ -7,9 +7,9 @@ type SymbolRow = { id: number; kind: string; name: string; qualified_name: strin
 type DependencyRow = { target_file_id: number | null; imported_name: string; evidence: string }
 type ReverseDependencyRow = { source_file_id: number; imported_name: string; evidence: string }
 
-export interface FileDetailSourceProps { repositoryId: number | null; fileId: number | null; onBack?: () => void; backLabel?: string }
+export interface FileDetailSourceProps { repositoryId: number | null; fileId: number | null; onBack?: () => void; backLabel?: string; onSelectFile?: (fileId: number) => void }
 
-export function FileDetailSource({ repositoryId, fileId, onBack, backLabel = 'Back' }: FileDetailSourceProps) {
+export function FileDetailSource({ repositoryId, fileId, onBack, backLabel = 'Back', onSelectFile }: FileDetailSourceProps) {
   const [file, setFile] = useState<RepositoryFile | null>(null)
   const [content, setContent] = useState<string | null>(null)
   const [symbols, setSymbols] = useState<SymbolRow[]>([])
@@ -57,8 +57,8 @@ export function FileDetailSource({ repositoryId, fileId, onBack, backLabel = 'Ba
       <aside className="file-intelligence-rail">
         <WorkspacePanel title="Signal profile"><div className="file-signal-grid"><span><Braces size={14} />Symbols<strong>{symbols.length}</strong></span><span><Network size={14} />Fan-in<strong>{reverse.length}</strong></span><span><GitBranch size={14} />Fan-out<strong>{forward.length}</strong></span><span><TestTube2 size={14} />Static tests<strong>{tests.length}</strong></span></div>{hotspot && <div className="file-hotspot"><TriangleAlert size={14} /><span>Hotspot score<strong>{hotspot.score}</strong></span></div>}</WorkspacePanel>
         <WorkspacePanel title="Symbols">{symbols.length ? symbols.map(symbol => <div className="intelligence-row" key={symbol.id}><strong>{symbol.name}</strong><small>{symbol.kind} · L{symbol.start_line}–{symbol.end_line}</small></div>) : <WorkspaceState kind="empty">No symbols detected.</WorkspaceState>}</WorkspacePanel>
-        <WorkspacePanel title="Dependencies"><div className="intelligence-count"><span>Outbound imports</span><strong>{forward.length}</strong></div>{forward.slice(0, 6).map(item => <div className="intelligence-row" key={`${item.imported_name}-${item.evidence}`}><strong>{item.imported_name || 'Dependency'}</strong><small>{item.evidence}</small></div>)}<div className="intelligence-count"><span>Inbound consumers</span><strong>{reverse.length}</strong></div>{reverse.slice(0, 6).map(item => <div className="intelligence-row" key={`${item.source_file_id}-${item.imported_name}`}><strong>{item.imported_name || 'Consumer'}</strong><small>{item.evidence}</small></div>)}</WorkspacePanel>
-        <WorkspacePanel title="Test intelligence">{tests.length ? tests.map(test => <div className="intelligence-row" key={`${test.test_file_id}-${test.source_file_id}`}><strong>{test.test_path}</strong><small>{test.kind} · {test.evidence_level}</small></div>) : <WorkspaceState kind="empty">No statically linked tests.</WorkspaceState>}</WorkspacePanel>
+         <WorkspacePanel title="Dependencies"><div className="intelligence-count"><span>Outbound imports</span><strong>{forward.length}</strong></div>{forward.slice(0, 6).map(item => <button type="button" className="intelligence-row w-full text-left" key={`${item.imported_name}-${item.evidence}`} onClick={() => item.target_file_id && onSelectFile?.(item.target_file_id)}><strong>{item.imported_name || 'Dependency'}</strong><small>{item.evidence}</small></button>)}<div className="intelligence-count"><span>Inbound consumers</span><strong>{reverse.length}</strong></div>{reverse.slice(0, 6).map(item => <button type="button" className="intelligence-row w-full text-left" key={`${item.source_file_id}-${item.imported_name}`} onClick={() => onSelectFile?.(item.source_file_id)}><strong>{item.imported_name || 'Consumer'}</strong><small>{item.evidence}</small></button>)}</WorkspacePanel>
+         <WorkspacePanel title="Test intelligence">{tests.length ? tests.map(test => <button type="button" className="intelligence-row w-full text-left" key={`${test.test_file_id}-${test.source_file_id}`} onClick={() => onSelectFile?.(test.test_file_id)}><strong>{test.test_path}</strong><small>{test.kind} · {test.evidence_level}</small></button>) : <WorkspaceState kind="empty">No statically linked tests.</WorkspaceState>}</WorkspacePanel>
       </aside>
     </div>
   </>

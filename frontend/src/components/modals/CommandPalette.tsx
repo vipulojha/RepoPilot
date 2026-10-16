@@ -34,7 +34,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 }) => {
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<'all' | 'navigation' | 'files' | 'symbols' | 'actions'>('all');
-  const [selectedIndex, setSelectedIndex] = useState(4); // default on Impact Analysis as in screenshot
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -43,18 +43,27 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         if (isOpen) onClose();
       } else if (e.key === 'Escape' && isOpen) {
         onClose();
+      } else if (isOpen && e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedIndex(index => Math.min(index + 1, filteredItems.length - 1));
+      } else if (isOpen && e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedIndex(index => Math.max(index - 1, 0));
+      } else if (isOpen && e.key === 'Enter') {
+        e.preventDefault();
+        filteredItems[selectedIndex]?.action();
+        if (filteredItems[selectedIndex]) onClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
+  }, [isOpen, onClose, selectedIndex, query, activeCategory]);
 
   const navItems = [
     { id: 'overview' as NavigationPage, label: 'Dashboard', icon: LayoutGrid, shortcut: 'G D' },
     { id: 'files' as NavigationPage, label: 'Files', icon: FileText, shortcut: 'G F' },
     { id: 'dependency-graph' as NavigationPage, label: 'Dependency Graph', icon: Share2, shortcut: 'G G' },
+    { id: 'dependency-atlas' as NavigationPage, label: 'Dependency Atlas', icon: Share2, shortcut: 'G X' },
     { id: 'search' as NavigationPage, label: 'Search', icon: Search, shortcut: 'G S' },
     { id: 'impact-analysis' as NavigationPage, label: 'Impact Analysis', icon: Activity, shortcut: 'G I' },
     { id: 'hotspots' as NavigationPage, label: 'Hotspots', icon: AlertTriangle, shortcut: 'G H' },
@@ -62,18 +71,26 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     { id: 'history' as NavigationPage, label: 'History', icon: History, shortcut: 'G Y' },
     { id: 'change-intelligence' as NavigationPage, label: 'Change Intelligence', icon: Sliders, shortcut: 'G C' },
     { id: 'git-actions' as NavigationPage, label: 'Git Actions', icon: Terminal, shortcut: 'G A' },
+    { id: 'settings' as NavigationPage, label: 'Settings', icon: Sliders, shortcut: 'G E' },
+    { id: 'help' as NavigationPage, label: 'Help & Shortcuts', icon: CheckSquare, shortcut: '?' },
   ];
 
   const actionItems = [
-    { label: 'Run AST rescan', icon: RefreshCw, shortcut: 'Cmd+Shift+R', action: () => onRescan?.() },
-    { label: 'Switch repository', icon: FolderGit2, shortcut: 'Cmd+O', action: () => onNavigate('onboarding') },
-    { label: 'Export dependency matrix', icon: Download, shortcut: 'Cmd+E', action: () => onExportMatrix?.() },
+    { id: 'rescan', label: 'Run AST rescan', icon: RefreshCw, shortcut: 'Cmd+Shift+R', action: () => onRescan?.() },
+    { id: 'switch-repository', label: 'Switch repository', icon: FolderGit2, shortcut: 'Cmd+O', action: () => onNavigate('onboarding') },
+    { id: 'export-matrix', label: 'Export dependency matrix', icon: Download, shortcut: 'Cmd+E', action: () => onExportMatrix?.() },
   ];
-
   const handleSelectNav = (page: NavigationPage) => {
     onNavigate(page);
     onClose();
   };
+  const allItems = [...navItems.map(item => ({ ...item, category: 'navigation', action: () => handleSelectNav(item.id) })), ...actionItems.map(item => ({ ...item, category: 'actions' }))];
+  const filteredItems = allItems.filter(item => (activeCategory === 'all' || item.category === activeCategory) && `${item.label} ${item.id}`.toLowerCase().includes(query.toLowerCase()));
+  const selectedItem = filteredItems[selectedIndex];
+
+  useEffect(() => { setSelectedIndex(0); }, [query, activeCategory]);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs select-none">
@@ -124,14 +141,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 NAVIGATION
               </div>
               <div className="space-y-0.5 mt-1">
-                {navItems.map((item, idx) => {
+                {navItems.filter(item => `${item.label} ${item.id}`.toLowerCase().includes(query.toLowerCase())).map((item) => {
                   const Icon = item.icon;
-                  const isSelected = selectedIndex === idx;
+                  const isSelected = selectedItem?.id === item.id;
                   return (
                     <div
                       key={item.id}
                       onClick={() => handleSelectNav(item.id)}
-                      onMouseEnter={() => setSelectedIndex(idx)}
+                       onMouseEnter={() => setSelectedIndex(filteredItems.findIndex(candidate => candidate.id === item.id))}
                       className={`flex items-center justify-between h-[30px] px-2.5 cursor-pointer transition-colors ${
                         isSelected
                           ? 'bg-[#182030] text-[#00F2FE] border-l-2 border-[#00F2FE]'
@@ -162,11 +179,11 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 ACTIONS
               </div>
               <div className="space-y-0.5 mt-1">
-                {actionItems.map((item, idx) => {
+                {actionItems.filter(item => item.label.toLowerCase().includes(query.toLowerCase())).map((item) => {
                   const Icon = item.icon;
                   return (
                     <div
-                      key={idx}
+                       key={item.label}
                       onClick={() => {
                         item.action();
                         onClose();

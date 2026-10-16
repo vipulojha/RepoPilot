@@ -6,7 +6,7 @@ import { Button } from '../components/ui/Button'
 import { useHandoffDataContext } from '../lib/handoffData'
 
 type GraphNodeData = { label: string; path: string; incoming: number; outgoing: number; isTest?: boolean }
-type DependencyGraphViewProps = { onSelectFile?: (id: number) => void }
+type DependencyGraphViewProps = { onSelectFile?: (id: number) => void; onAnalyzeImpact?: (id: number) => void }
 
 function FileNode({ data, selected }: NodeProps<Node<GraphNodeData>>) {
   return <>
@@ -24,10 +24,13 @@ function FileNode({ data, selected }: NodeProps<Node<GraphNodeData>>) {
 const nodeTypes = { file: FileNode }
 
 function GraphCanvas({ nodes, edges, selectedId, setSelectedId }: { nodes: Node<GraphNodeData>[]; edges: Edge[]; selectedId: string; setSelectedId: (id: string) => void }) {
-  const { fitView } = useReactFlow()
+  const { fitView, setViewport } = useReactFlow()
   useEffect(() => { const timer = window.setTimeout(() => fitView({ padding: 0.18, duration: 250 }), 0); return () => window.clearTimeout(timer) }, [fitView, nodes.length])
   return <>
-    <button type="button" onClick={() => fitView({ padding: 0.18, duration: 250 })} className="absolute left-4 top-4 z-10 border border-[#2D3A54] bg-[#111622] px-2.5 py-1.5 font-mono text-[10px] text-[#DEE2F3] hover:border-[#00F2FE] hover:text-[#00F2FE]">Fit / center</button>
+    <div className="absolute left-4 top-4 z-10 flex gap-1">
+      <button type="button" onClick={() => fitView({ padding: 0.18, duration: 250 })} className="border border-[#2D3A54] bg-[#111622] px-2.5 py-1.5 font-mono text-[10px] text-[#DEE2F3] hover:border-[#00F2FE] hover:text-[#00F2FE]">Fit / center</button>
+      <button type="button" onClick={() => setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 180 })} className="border border-[#2D3A54] bg-[#111622] px-2.5 py-1.5 font-mono text-[10px] text-[#DEE2F3] hover:border-[#00F2FE] hover:text-[#00F2FE]">Reset view</button>
+    </div>
     <ReactFlow nodes={nodes.map(node => ({ ...node, selected: node.id === selectedId }))} edges={edges} nodeTypes={nodeTypes} fitView onNodeClick={(_, node) => setSelectedId(node.id)} minZoom={0.25} maxZoom={2}>
       <Background color="#273247" gap={24} size={1} />
       <Controls className="!bg-[#111622] !border-[#2D3A54]" />
@@ -36,7 +39,7 @@ function GraphCanvas({ nodes, edges, selectedId, setSelectedId }: { nodes: Node<
   </>
 }
 
-export const DependencyGraphView: React.FC<DependencyGraphViewProps> = ({ onSelectFile }) => {
+export const DependencyGraphView: React.FC<DependencyGraphViewProps> = ({ onSelectFile, onAnalyzeImpact }) => {
   const handoffData = useHandoffDataContext()
   const [selectedId, setSelectedId] = useState('')
   const [search, setSearch] = useState('')
@@ -49,8 +52,15 @@ export const DependencyGraphView: React.FC<DependencyGraphViewProps> = ({ onSele
     const queue: Array<[string, number]> = visible.filter(node => !(incoming.get(String(node.id)) ?? 0)).map(node => [String(node.id), 0])
     while (queue.length) { const [id, level] = queue.shift()!; if ((levels.get(id) ?? -1) >= level) continue; levels.set(id, level); (graph?.edges ?? []).filter(edge => String(edge.source) === id).forEach(edge => queue.push([String(edge.target), level + 1])) }
     visible.forEach(node => { if (!levels.has(String(node.id))) levels.set(String(node.id), 0) })
-    const columns = new Map<number, number>()
-    return visible.map(node => { const level = levels.get(String(node.id)) ?? 0; const row = columns.get(level) ?? 0; columns.set(level, row + 1); return { id: String(node.id), type: 'file', position: { x: level * 280, y: row * 125 }, data: { label: node.name ?? node.path, path: node.path, incoming: node.incoming, outgoing: node.outgoing, isTest: node.is_test } } })
+    const byLevel = new Map<number, typeof visible>()
+    visible.forEach(node => { const level = levels.get(String(node.id)) ?? 0; byLevel.set(level, [...(byLevel.get(level) ?? []), node]) })
+    const positions = new Map<string, { x: number; y: number }>()
+    byLevel.forEach((levelNodes, level) => {
+      const ordered = [...levelNodes].sort((a, b) => a.path.localeCompare(b.path) || a.id - b.id)
+      const spread = Math.max(1, ordered.length - 1)
+      ordered.forEach((node, index) => positions.set(String(node.id), { x: level * 300, y: (index - spread / 2) * 150 }))
+    })
+    return visible.map(node => ({ id: String(node.id), type: 'file', position: positions.get(String(node.id)) ?? { x: 0, y: 0 }, data: { label: node.name ?? node.path, path: node.path, incoming: node.incoming, outgoing: node.outgoing, isTest: node.is_test } }))
   }, [graph, search])
   const edges = useMemo<Edge[]>(() => (graph?.edges ?? []).filter(edge => nodes.some(node => node.id === String(edge.source)) && nodes.some(node => node.id === String(edge.target))).map(edge => ({ id: String(edge.id), source: String(edge.source), target: String(edge.target), type: 'smoothstep', label: edge.kind, className: edge.kind === 'direct' || edge.kind === 'import' ? 'stroke-[#00F2FE]' : 'stroke-[#9D4EDD] stroke-dasharray-[4_3]' })), [graph, nodes])
   const selectedNode = nodeById.get(selectedId)
@@ -63,7 +73,7 @@ export const DependencyGraphView: React.FC<DependencyGraphViewProps> = ({ onSele
   return <div className="flex h-full w-full flex-col overflow-hidden bg-[#0B0E14]">
     <div className="flex h-[48px] shrink-0 items-center justify-between border-b border-[#1E2638] bg-[#0E131F] px-4">
       <div className="relative w-64"><Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-[#475569]" /><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search in graph…" className="h-7 w-full border border-[#1E2638] bg-[#0B0E14] pl-8 pr-2 font-mono text-[11px] text-[#F1F5F9] focus:border-[#00F2FE] focus:outline-none" /></div>
-      <div className="flex items-center gap-3"><span className="border border-[#00F2FE]/30 bg-[#00F2FE]/10 px-2.5 py-1 font-mono text-[11px] text-[#00F2FE]">{nodes.length} nodes · {edges.length} edges</span><Button variant="outline-cyan" size="sm" icon={<Sparkles className="h-3.5 w-3.5" />}>Analyze Selected</Button></div>
+      <div className="flex items-center gap-3"><span className="border border-[#00F2FE]/30 bg-[#00F2FE]/10 px-2.5 py-1 font-mono text-[11px] text-[#00F2FE]">{nodes.length} nodes · {edges.length} edges</span><Button variant="outline-cyan" size="sm" disabled={!selectedNode} onClick={() => selectedNode && onAnalyzeImpact?.(selectedNode.id)} icon={<Sparkles className="h-3.5 w-3.5" />}>Analyze Selected</Button></div>
     </div>
     <div className="relative min-h-0 flex-1 bg-[#080B10]">
       {search && !nodes.length ? <div className="absolute inset-0 z-10 flex items-center justify-center text-sm text-[#94A3B8]">No files match “{search}”.</div> : <ReactFlowProvider><GraphCanvas nodes={nodes} edges={edges} selectedId={selectedId} setSelectedId={select} /></ReactFlowProvider>}

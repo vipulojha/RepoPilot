@@ -14,7 +14,7 @@ import {
 import { Button } from '../components/ui/Button';
 import { useHandoffDataContext } from '../lib/handoffData';
 
-export const ChangeIntelligenceView: React.FC = () => {
+export const ChangeIntelligenceView: React.FC<{ onSelectFile?: (fileId: number) => void }> = ({ onSelectFile }) => {
   const data = useHandoffDataContext();
   const changes = data?.changedFiles ?? [];
   const affectedFiles = data?.affectedFiles ?? [];
@@ -232,7 +232,7 @@ export const ChangeIntelligenceView: React.FC = () => {
                   □ {selectedAnalysis?.path ?? 'No changed file selected'}
                 </div>
                 <div className="pl-4 text-[#94A3B8] space-y-0.5 border-l border-[#1E2638] ml-2">
-                  {affectedFiles.length ? affectedFiles.slice(0, 6).map(file => <div key={`${file.file_id}-${file.depth}`}>↳ {file.path} · depth {file.depth}</div>) : <div>↳ No affected files returned</div>}
+                   {affectedFiles.length ? affectedFiles.slice(0, 6).map(file => <button type="button" className="block text-left hover:text-[#00F2FE]" key={`${file.file_id}-${file.depth}`} onClick={() => onSelectFile?.(file.file_id)}>↳ {file.path} · depth {file.depth}</button>) : <div>↳ No affected files returned</div>}
                 </div>
               </div>
             </div>

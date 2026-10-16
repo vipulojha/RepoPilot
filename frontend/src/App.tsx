@@ -12,26 +12,14 @@ import {
 } from 'lucide-react'
 import { api, type Repository } from './lib/api/client'
 import {
-  DependencyGraphWorkspace,
   FileDetailSource,
-  FilesExplorer,
   GitActionsPanel,
   GitStatusPanel,
-  ChangeIntelligencePanel,
-  HistoryPanel,
   CommitDetailPanel,
   FileHistoryPanel,
   ComparePanel,
-  HotspotsWorkspace,
-  ImpactWorkspace,
   OnboardingPanel,
-  RepositoryCockpit,
-  SearchWorkspace,
-  TestsWorkspace,
   WorkspaceHeader,
-  WorkspacePanel,
-  WorkspaceState,
-  ObsidianTelemetryShell,
 } from './components/rebuild'
 import './components/rebuild/rebuild.css'
 import { AppSidebar, type NavigationPage } from './components/layout/AppSidebar'
@@ -49,7 +37,6 @@ import { TestsView } from './views/TestsView'
 import { HistoryView } from './views/HistoryView'
 import { ChangeIntelligenceView } from './views/ChangeIntelligenceView'
 import { GitActionsView } from './views/GitActionsView'
-import { OnboardingView } from './views/OnboardingView'
 import { SettingsView } from './views/SettingsView'
 import { HelpView } from './views/HelpView'
 
@@ -67,10 +54,10 @@ const pageGroups = [
 ]
 
 function App() {
-  const [page, setPage] = useState<Page>(() => Number(localStorage.getItem('repopilot.repositoryId')) ? (readLandingView() as Page) : 'Onboarding')
+  const [page, setPage] = useState<Page>(() => Number(localStorage.getItem('repopilot.repositoryId')) ? readRoutePage() : 'Onboarding')
   const [repositories, setRepositories] = useState<Repository[]>([])
   const [repositoryId, setRepositoryId] = useState<number | null>(() => readPreferences().rememberRepository ? Number(localStorage.getItem('repopilot.repositoryId')) || null : null)
-  const [selectedFileId, setSelectedFileId] = useState<number | null>(null)
+  const [selectedFileId, setSelectedFileId] = useState<number | null>(() => readRouteFileId())
   const [selectedCommit, setSelectedCommit] = useState<string | null>(null)
   const [viewHistory, setViewHistory] = useState<Array<{ page: Page; selectedFileId: number | null; selectedCommit: string | null }>>([])
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -130,18 +117,20 @@ function App() {
     setViewHistory(history => [...history, { page, selectedFileId, selectedCommit }])
     setSelectedFileId(fileId)
     setPage('File Detail')
+    pushRoute('File Detail', fileId)
   }
 
   const goBack = () => {
     const previous = viewHistory[viewHistory.length - 1]
     if (!previous) {
-      setPage('Dashboard')
+      navigate('Dashboard', null)
       return
     }
     setViewHistory(history => history.slice(0, -1))
     setPage(previous.page)
-    setSelectedFileId(previous.selectedFileId ?? selectedFileId)
+    setSelectedFileId(previous.selectedFileId)
     setSelectedCommit(previous.selectedCommit)
+    replaceRoute(previous.page, previous.selectedFileId)
   }
 
   const rescan = async () => {
@@ -181,9 +170,10 @@ function App() {
     window.setTimeout(() => setFeedback(''), 3500)
   }
 
-  const navigate = (nextPage: string) => {
+  const navigate = (nextPage: string, nextFileId: number | null = selectedFileId) => {
     if (nextPage === 'Onboarding') {
       setPage('Onboarding')
+      pushRoute('Onboarding', null)
       openOnboarding()
       return
     }
@@ -193,9 +183,22 @@ function App() {
     } else {
       setViewHistory([])
     }
+    pushRoute(nextPage as Page, nextFileId)
     setPaletteOpen(false)
     setRepositoryMenuOpen(false)
   }
+
+  useEffect(() => {
+    const onPopState = (event: PopStateEvent) => {
+      const state = event.state as { page?: Page; selectedFileId?: number | null } | null
+      const nextPage = state?.page ?? readRoutePage()
+      setPage(nextPage)
+      setSelectedFileId(state?.selectedFileId ?? readRouteFileId())
+      setViewHistory([])
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
 
   const view = useMemo(() => renderPage({
     page,
@@ -204,12 +207,15 @@ function App() {
     selectedFileId,
     selectedCommit,
     setPage,
+    setSelectedFileId,
     setSelectedCommit,
     selectFile,
+    finishOnboarding,
     onStartOnboarding: () => openOnboarding(),
     onBack: goBack,
     backLabel,
-  }), [page, selectedRepository, repositoryId, selectedFileId, selectedCommit, backLabel])
+    navigate,
+  }), [page, selectedRepository, repositoryId, selectedFileId, selectedCommit, backLabel, navigate, selectFile, goBack])
 
   return <>
     <div className="flex flex-col h-screen w-screen bg-[#0B0E14] text-[#DEE2F3] overflow-hidden select-none">
@@ -220,12 +226,12 @@ function App() {
           <main className="flex-1 overflow-auto relative">
             <div className="rp-workspace-wrap">
         {feedback && <div className="rp-feedback" role="status"><Activity size={14} />{feedback}<button onClick={() => setFeedback('')} aria-label="Dismiss feedback"><X size={14} /></button></div>}
-        {view}
+         {view}
             </div>
           </main>
         </div>
       </div>
-    {repositoryMenuOpen && <RepositoryPopover repositories={repositories} activeId={repositoryId} anchorRef={repositoryMenuRef} onSelect={id => { setRepositoryId(id); setPage('Dashboard'); setRepositoryMenuOpen(false) }} onAdd={() => { setRepositoryMenuOpen(false); openOnboarding() }} />}
+    {repositoryMenuOpen && <RepositoryPopover repositories={repositories} activeId={repositoryId} anchorRef={repositoryMenuRef} onSelect={id => { setRepositoryId(id); navigate('Dashboard'); setRepositoryMenuOpen(false) }} onAdd={() => { setRepositoryMenuOpen(false); openOnboarding() }} />}
     {paletteOpen && <HandoffCommandPalette isOpen={paletteOpen} onClose={() => setPaletteOpen(false)} onNavigate={next => navigate(next)} onRescan={() => void rescan()} onExportMatrix={() => setFeedback('Dependency matrix export is available from the graph view.')} />}
     {onboardingOpen && <OnboardingOverlay mode={onboardingMode} onComplete={finishOnboarding} onClose={() => setOnboardingOpen(false)} />}
     </div>
@@ -250,42 +256,45 @@ function CommandPalette({ onClose, onNavigate, onOpenOnboarding }: { onClose: ()
   return <div className="rp-palette-backdrop" onMouseDown={onClose}><div className="rp-palette" role="dialog" aria-modal="true" aria-label="Command palette" onMouseDown={event => event.stopPropagation()}><div className="rp-palette-search"><Search size={16} /><input autoFocus value={query} onChange={event => setQuery(event.target.value)} placeholder="Jump to a workspace or action…" /><kbd>ESC</kbd></div><div className="rp-palette-body">{filtered.length ? filtered.map(command => <button key={command.page} className="rp-palette-row" onClick={() => { command.page === 'Onboarding' ? onOpenOnboarding() : onNavigate(command.page); onClose() }}><command.icon size={15} /><span><strong>{command.page}</strong><small>{command.group}</small></span><kbd>↵</kbd></button>) : <div className="rp-palette-empty">No matching workspace.</div>}</div><footer><span>↑↓ Navigate</span><span>↵ Open</span><span>Esc Close</span><span><Command size={11} /> K</span></footer></div></div>
 }
 
-function renderPage({ page, repository, repositoryId, selectedFileId, selectedCommit, setPage, setSelectedCommit, selectFile, onStartOnboarding, onBack, backLabel }: {
+function renderPage({ page, repository, repositoryId, selectedFileId, selectedCommit, setPage, setSelectedFileId, setSelectedCommit, selectFile, finishOnboarding, onStartOnboarding, onBack, backLabel, navigate }: {
   page: Page
   repository: Repository | null
   repositoryId: number | null
   selectedFileId: number | null
   selectedCommit: string | null
   setPage: (page: Page) => void
+  setSelectedFileId: (fileId: number | null) => void
   setSelectedCommit: (sha: string) => void
   selectFile: (fileId: number) => void
+  finishOnboarding: (repository: Repository, focus?: string) => Promise<void> | void
   onStartOnboarding: () => void
   onBack: () => void
   backLabel: string
+    navigate: (page: string, fileId?: number | null) => void
 }) {
   const handoff = (render: (data: import('./lib/handoffData').HandoffData) => React.ReactNode) => <HandoffDataBoundary repositoryId={repositoryId}>{render}</HandoffDataBoundary>
   switch (page) {
-    case 'Dashboard': return handoff(() => <CockpitView onNavigate={next => setPage(next as Page)} />)
+    case 'Dashboard': return handoff(() => <CockpitView onNavigate={next => navigate(next)} />)
     case 'Files': return handoff(() => <FilesView onSelectFile={selectFile} selectedFileId={selectedFileId} />)
-    case 'File Detail': return <FileDetailSource repositoryId={repositoryId} fileId={selectedFileId} onBack={onBack} backLabel={backLabel} />
+    case 'File Detail': return <FileDetailSource repositoryId={repositoryId} fileId={selectedFileId} onBack={onBack} backLabel={backLabel} onSelectFile={selectFile} />
     case 'Search': return handoff(() => <SearchView repositoryId={repositoryId} onSelectFile={selectFile} />)
-    case 'Dependency Graph': return handoff(() => <DependencyGraphView onSelectFile={selectFile} />)
-    case 'Dependency Atlas': return handoff(() => <DependencyAtlasView />)
-    case 'Impact Analysis': return handoff(() => <ImpactAnalysisView repositoryId={repositoryId} selectedFileId={selectedFileId} />)
-    case 'Hotspots': return handoff(() => <HotspotsView onAnalyzeImpact={() => setPage('Impact Analysis')} />)
-    case 'Tests': return handoff(() => <TestsView repositoryId={repositoryId} selectedFileId={selectedFileId} />)
+    case 'Dependency Graph': return handoff(() => <DependencyGraphView onSelectFile={selectFile} onAnalyzeImpact={(fileId) => { setSelectedFileId(fileId); navigate('Impact Analysis', fileId) }} />)
+    case 'Dependency Atlas': return handoff(() => <DependencyAtlasView onSelectFile={selectFile} />)
+    case 'Impact Analysis': return handoff(() => <ImpactAnalysisView repositoryId={repositoryId} selectedFileId={selectedFileId} onSelectFile={selectFile} />)
+    case 'Hotspots': return handoff(() => <HotspotsView onAnalyzeImpact={(fileId) => { setSelectedFileId(fileId); navigate('Impact Analysis', fileId) }} onSelectFile={selectFile} />)
+    case 'Tests': return handoff(() => <TestsView repositoryId={repositoryId} selectedFileId={selectedFileId} onSelectFile={selectFile} />)
     case 'Status': return <GitStatusPanel repositoryId={repositoryId} />
-    case 'Change Intelligence': return handoff(() => <ChangeIntelligenceView />)
+    case 'Change Intelligence': return handoff(() => <ChangeIntelligenceView onSelectFile={selectFile} />)
     case 'Git Actions': return handoff(() => <GitActionsView repositoryId={repositoryId} />)
     case 'Stash': return <GitActionsPanel repositoryId={repositoryId} />
     case 'History': return handoff(() => <HistoryView onSelectFile={selectFile} />)
     case 'Commit Detail': return <CommitDetailPanel repositoryId={repositoryId} sha={selectedCommit} />
     case 'File History': return <FileHistoryPanel repositoryId={repositoryId} fileId={selectedFileId} />
     case 'Compare': return <CompareWorkspace repositoryId={repositoryId} />
-    case 'Onboarding': return <OnboardingView onComplete={onStartOnboarding} />
+    case 'Onboarding': return <div className="rp-workspace-wrap"><OnboardingPanel onComplete={finishOnboarding} /></div>
     case 'Settings': return <SettingsView onBack={onBack} />
     case 'Help & Shortcuts': return <HelpView onBack={onBack} />
-    default: return <RepositoryCockpit repository={repository} />
+    default: return <FileDetailSource repositoryId={repositoryId} fileId={selectedFileId} onBack={onBack} backLabel={backLabel} />
   }
 }
 
@@ -301,6 +310,35 @@ function readPreferences(): { rememberRepository: boolean; landingView: string }
 function readLandingView() {
   const landingView = readPreferences().landingView
   return ['Dashboard', 'Files', 'Dependency Graph', 'History'].includes(landingView) ? landingView : 'Dashboard'
+}
+
+function routeFor(page: Page, fileId: number | null = null) {
+  const slugs: Record<Page, string> = {
+    Dashboard: 'dashboard', Files: 'files', 'File Detail': 'file', Search: 'search', 'Dependency Graph': 'graph',
+    'Dependency Atlas': 'atlas', 'Impact Analysis': 'impact', Hotspots: 'hotspots', Tests: 'tests', Status: 'status',
+    'Change Intelligence': 'changes', 'Git Actions': 'git-actions', Stash: 'stash', History: 'history', 'Commit Detail': 'commit',
+    'File History': 'file-history', Compare: 'compare', Settings: 'settings', 'Help & Shortcuts': 'help', Onboarding: 'onboarding',
+  }
+  return `/workspace/${slugs[page]}${fileId ? `?file=${fileId}` : ''}`
+}
+
+function readRoutePage(): Page {
+  const slug = window.location.pathname.split('/').filter(Boolean).pop()
+  const pages: Record<string, Page> = { dashboard: 'Dashboard', files: 'Files', file: 'File Detail', search: 'Search', graph: 'Dependency Graph', atlas: 'Dependency Atlas', impact: 'Impact Analysis', hotspots: 'Hotspots', tests: 'Tests', status: 'Status', changes: 'Change Intelligence', 'git-actions': 'Git Actions', stash: 'Stash', history: 'History', commit: 'Commit Detail', 'file-history': 'File History', compare: 'Compare', settings: 'Settings', help: 'Help & Shortcuts', onboarding: 'Onboarding' }
+  return pages[slug ?? ''] ?? readLandingView() as Page
+}
+
+function readRouteFileId() {
+  const value = Number(new URLSearchParams(window.location.search).get('file'))
+  return Number.isFinite(value) && value > 0 ? value : null
+}
+
+function pushRoute(page: Page, fileId: number | null) {
+  window.history.pushState({ page, selectedFileId: fileId }, '', routeFor(page, fileId))
+}
+
+function replaceRoute(page: Page, fileId: number | null) {
+  window.history.replaceState({ page, selectedFileId: fileId }, '', routeFor(page, fileId))
 }
 
 function CompareWorkspace({ repositoryId }: { repositoryId: number | null }) {

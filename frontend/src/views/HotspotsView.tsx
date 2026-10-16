@@ -4,13 +4,15 @@ import { Button } from '../components/ui/Button';
 import { useHandoffDataContext } from '../lib/handoffData';
 
 export interface HotspotsViewProps {
-  onAnalyzeImpact?: (path: string) => void;
+  onAnalyzeImpact?: (fileId: number) => void;
+  onSelectFile?: (fileId: number) => void;
 }
 
-export const HotspotsView: React.FC<HotspotsViewProps> = ({ onAnalyzeImpact }) => {
+export const HotspotsView: React.FC<HotspotsViewProps> = ({ onAnalyzeImpact, onSelectFile }) => {
   const handoffData = useHandoffDataContext();
-  const HOTSPOTS_DATA = (handoffData?.hotspots ?? []).map((item, index) => ({ rank: `#${String(index + 1).padStart(2, '0')}`, path: item.path, lines: item.metrics?.lines ?? 0, callers: item.metrics?.fan_in ?? 0, deps: item.metrics?.fan_out ?? 0, score: item.score, signal: item.reasons?.join(', ') ?? '' }));
-  const [selectedHotspot, setSelectedHotspot] = useState<string>('#04');
+  const HOTSPOTS_DATA = (handoffData?.hotspots ?? []).map((item, index) => ({ id: item.file_id, rank: `#${String(index + 1).padStart(2, '0')}`, path: item.path, lines: item.metrics?.lines ?? 0, callers: item.metrics?.fan_in ?? 0, deps: item.metrics?.fan_out ?? 0, score: item.score, signal: item.reasons?.join(', ') ?? '' }));
+  const [selectedHotspot, setSelectedHotspot] = useState<string>('');
+  const maxScore = Math.max(...HOTSPOTS_DATA.map(item => item.score), 1);
 
   return (
     <div className="flex flex-col h-full w-full bg-[#0B0E14] select-none overflow-y-auto p-6 space-y-6">
@@ -59,24 +61,12 @@ export const HotspotsView: React.FC<HotspotsViewProps> = ({ onAnalyzeImpact }) =
               <text x="160" y="96" fill="#475569" fontSize="8" textAnchor="middle" fontFamily="JetBrains Mono">50</text>
               <text x="280" y="96" fill="#475569" fontSize="8" textAnchor="middle" fontFamily="JetBrains Mono">100</text>
 
-              {/* Nominal Cluster (Cyan, bottom left) */}
-              {[
-                [45, 75], [52, 70], [60, 72], [48, 68], [65, 65], [72, 60],
-                [55, 62], [80, 58], [90, 62], [85, 70], [70, 74], [95, 65]
-              ].map(([cx, cy], i) => (
-                <circle key={`c-${i}`} cx={cx} cy={cy} r="2.2" fill="#00F2FE" opacity="0.8" />
-              ))}
-
-              {/* Amber Cluster (High Risk, top right) */}
-              {[
-                [180, 35], [195, 25], [210, 30], [225, 20], [240, 22], [250, 15],
-                [215, 38], [230, 28], [260, 25], [270, 18], [200, 42], [235, 34]
-              ].map(([cx, cy], i) => (
-                <circle key={`a-${i}`} cx={cx} cy={cy} r="2.5" fill="#FFB703" opacity="0.9" />
-              ))}
-
-              {/* Selected hotspot pulse point */}
-              <circle cx="215" cy="38" r="5" stroke="#00F2FE" strokeWidth="1.5" fill="none" className="animate-ping" />
+              {HOTSPOTS_DATA.map((hotspot, i) => {
+                const x = 40 + Math.min(235, hotspot.callers * 18 + i * 3);
+                const y = 82 - Math.min(68, hotspot.score / maxScore * 68);
+                const high = hotspot.score >= 67;
+                return <circle key={hotspot.rank} cx={x} cy={y} r={selectedHotspot === hotspot.rank ? 5 : 3} fill={high ? '#FFB703' : '#00F2FE'} opacity="0.9" onClick={() => setSelectedHotspot(hotspot.rank)} />;
+              })}
             </svg>
           </div>
           <div className="flex justify-between text-[9px] font-mono text-[#475569] mt-1">
@@ -93,7 +83,7 @@ export const HotspotsView: React.FC<HotspotsViewProps> = ({ onAnalyzeImpact }) =
             Structural hotspots
           </span>
           <span className="text-[11px] font-mono text-[#94A3B8]">
-            Showing 14 algorithmic signals
+             Showing {HOTSPOTS_DATA.length} API-ranked signals
           </span>
         </div>
 
@@ -152,12 +142,13 @@ export const HotspotsView: React.FC<HotspotsViewProps> = ({ onAnalyzeImpact }) =
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      onAnalyzeImpact?.(hotspot.path);
+                      onAnalyzeImpact?.(hotspot.id);
                     }}
                     icon={<Activity className="w-3 h-3" />}
                   >
                     Analyze impact
                   </Button>
+                  <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onSelectFile?.(hotspot.id); }}>Open file</Button>
                 </div>
               </div>
             );

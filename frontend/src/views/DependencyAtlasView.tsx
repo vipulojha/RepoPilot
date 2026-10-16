@@ -14,7 +14,7 @@ interface AtlasNode {
   couplingBadge?: { label: string; color: string };
 }
 
-export const DependencyAtlasView: React.FC = () => {
+export const DependencyAtlasView: React.FC<{ onSelectFile?: (fileId: number) => void }> = ({ onSelectFile }) => {
   const data = useHandoffDataContext();
   const nodes: AtlasNode[] = useMemo(() => (data?.graph.nodes ?? []).map((node, index) => {
     const columns = 6;
@@ -97,7 +97,7 @@ export const DependencyAtlasView: React.FC = () => {
             </svg>
              <span className="text-[14px] font-bold text-[#FFB703] absolute font-headline">{data?.graph.edges.length ?? 0}</span>
           </div>
-          <div className="text-[9px] text-[#FFB703] mt-2 uppercase tracking-wider">ELEVATED EXPOSURE</div>
+           <div className="text-[9px] text-[#FFB703] mt-2 uppercase tracking-wider">{data?.overview?.hotspot_count ?? 0} hotspots</div>
         </div>
 
         {/* Visual Graph Nodes & Bus Lines SVG */}
@@ -121,7 +121,7 @@ export const DependencyAtlasView: React.FC = () => {
               <g
                 key={node.id}
                 transform={`translate(${node.x - 60}, ${node.y - 20})`}
-                 onClick={() => setActiveNode(node.id)}
+                 onClick={() => { setActiveNode(node.id); onSelectFile?.(Number(node.id)) }}
                 className="cursor-pointer"
               >
                 {/* Node Box */}

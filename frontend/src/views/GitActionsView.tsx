@@ -14,6 +14,7 @@ import {
 import { Button } from '../components/ui/Button';
 import { useHandoffDataContext } from '../lib/handoffData';
 import { api } from '../lib/api/client';
+import { useEffect } from 'react';
 
 export const GitActionsView: React.FC<{ repositoryId?: number | null }> = ({ repositoryId }) => {
   const handoffData = useHandoffDataContext();
@@ -22,7 +23,10 @@ export const GitActionsView: React.FC<{ repositoryId?: number | null }> = ({ rep
   const [stashName, setStashName] = useState('Work in progress');
   const [stagedFiles, setStagedFiles] = useState(() => (handoffData?.changedFiles ?? []).map(file => ({ path: file.path, adds: file.additions, dels: file.deletions, staged: true })));
   const [feedback, setFeedback] = useState('');
-  const runAction = (action: string) => { if (!repositoryId) return; api.gitAction(repositoryId, { action: action as any, message: commitMessage || undefined, name: branchName || undefined, confirm: true }).then(receipt => setFeedback(receipt.message)).catch(error => setFeedback(error instanceof Error ? error.message : 'Git action failed')); };
+  const [stashes, setStashes] = useState<{ ref: string; subject: string }[]>([]);
+  const loadStashes = async () => { if (!repositoryId) return; try { const receipt = await api.gitAction(repositoryId, { action: 'stash_list' }); setStashes((receipt.stdout_summary ?? '').split('\n').map(line => line.trim()).filter(Boolean).map(line => { const [ref, subject = ''] = line.split('\0'); return { ref, subject }; })); } catch (error) { setFeedback(error instanceof Error ? error.message : 'Unable to load stashes'); } };
+  useEffect(() => { void loadStashes(); }, [repositoryId]);
+  const runAction = (action: string) => { if (!repositoryId) return; api.gitAction(repositoryId, { action: action as any, paths: stagedFiles.filter(file => file.staged).map(file => file.path), message: (action === 'stash_create' ? stashName : commitMessage) || undefined, name: branchName || undefined, confirm: true }).then(receipt => { setFeedback(receipt.message); void loadStashes(); }).catch(error => setFeedback(error instanceof Error ? error.message : 'Git action failed')); };
 
   const toggleStaged = (index: number) => {
     setStagedFiles((prev) =>
@@ -59,7 +63,7 @@ export const GitActionsView: React.FC<{ repositoryId?: number | null }> = ({ rep
           <span className="font-semibold text-[#DEE2F3]">Mutation Console</span>
           <span className="w-1.5 h-1.5 rounded-full bg-[#06D6A0]" />
           <span className="text-[#94A3B8]">
-            Connected & Syncing with repoPilot-git-worker
+             API-backed repository mutation controls
           </span>
         </div>
       </div>
@@ -190,7 +194,7 @@ export const GitActionsView: React.FC<{ repositoryId?: number | null }> = ({ rep
               onChange={(e) => setStashName(e.target.value)}
               className="w-full h-[28px] px-2.5 bg-[#0B0E14] border border-[#1E2638] text-[11px] text-[#F1F5F9] focus:outline-none focus:border-[#00F2FE]"
             />
-            <Button variant="secondary" size="sm" className="w-full" icon={<Archive className="w-3 h-3" />}>
+             <Button onClick={() => runAction('stash_create')} variant="secondary" size="sm" className="w-full" icon={<Archive className="w-3 h-3" />}>
               Create stash
             </Button>
 
@@ -200,18 +204,7 @@ export const GitActionsView: React.FC<{ repositoryId?: number | null }> = ({ rep
                 Stash Ledger
               </div>
               <div className="space-y-1.5 text-[10px] text-[#94A3B8]">
-                <div className="flex items-center justify-between p-1.5 bg-[#0B0E14] border border-[#1E2638]">
-                  <span className="text-[#DEE2F3]">stash@&#123;0&#125;: WIP on main: bugfix</span>
-                  <span>09/20/2023, 12:26:34</span>
-                </div>
-                <div className="flex items-center justify-between p-1.5 bg-[#0B0E14] border border-[#1E2638]">
-                  <span className="text-[#DEE2F3]">stash@&#123;1&#125;: WIP on main: bugfix</span>
-                  <span>09/20/2023, 19:28:35</span>
-                </div>
-                <div className="flex items-center justify-between p-1.5 bg-[#0B0E14] border border-[#1E2638]">
-                  <span className="text-[#DEE2F3]">stash@&#123;3&#125;: WIP on main: bugfix</span>
-                  <span>09/20/2023, 19:35:53</span>
-                </div>
+                {stashes.length ? stashes.map(stash => <div key={stash.ref} className="flex items-center justify-between p-1.5 bg-[#0B0E14] border border-[#1E2638]"><span className="text-[#DEE2F3]">{stash.ref}: {stash.subject || 'unnamed stash'}</span><span className="flex gap-1"><Button onClick={() => runAction('stash_apply')} variant="ghost" size="sm">Apply</Button><Button onClick={() => runAction('stash_pop')} variant="ghost" size="sm">Pop</Button></span></div>) : <div className="p-1.5 text-[#94A3B8]">No stashes returned by Git.</div>}
               </div>
             </div>
           </div>
