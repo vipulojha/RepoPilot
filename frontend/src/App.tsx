@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import {
   Activity, ArrowDownLeft, ArrowUpRight, Bell, Braces, ChevronDown, ChevronRight,
   CircleHelp, Command, Database, FileCode2, Folder, GitBranch, Hash, LayoutDashboard,
@@ -8,6 +8,7 @@ import {
 import { api, RepositoryFile, Scan } from './lib/api/client'
 import { Background, Controls, MiniMap, ReactFlow } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
+const WelcomeExperience = lazy(() => import('./components/welcome/WelcomeExperience').then(module => ({ default: module.WelcomeExperience })))
 
 type Page = 'Dashboard' | 'Files' | 'File Detail' | 'Dependency Graph' | 'Search' | 'Impact Analysis' | 'Change Intelligence' | 'Hotspots' | 'Tests' | 'History' | 'Commit Detail' | 'Git Actions'
 
@@ -107,7 +108,7 @@ function App() {
          <div className="top-actions"><select aria-label="Select repository" className="filter-button repository-select" value={repositoryId ?? ''} onChange={event => setRepositoryId(Number(event.target.value) || null)}><option value="">No repository</option>{repositories.map(repo => <option value={repo.id} key={repo.id}>{repo.name}</option>)}</select><button className="button button-quiet workspace-action" onClick={addRepository}>Add</button><button className="button button-quiet workspace-action" onClick={removeRepository} disabled={!repositoryId}>Remove</button><button className="command-trigger" onClick={() => setPaletteOpen(true)} aria-label="Open command palette"><Search size={15} /><span>Jump to anything</span><kbd>⌘ K</kbd></button></div>
       </header>
       <div className="content-wrap">
-        {page === 'Dashboard' && <DashboardCockpit setPage={setPage} repositoryId={repositoryId} onAddRepository={addRepository} />}
+        {page === 'Dashboard' && !repositoryId && repositories.length === 0 ? <Suspense fallback={<div className="welcome-loading">Loading RepoPilot…</div>}><WelcomeExperience onAddRepository={addRepository} onExplore={() => document.getElementById('welcome-how')?.scrollIntoView({ behavior: 'smooth' })} /></Suspense> : page === 'Dashboard' && <DashboardCockpit setPage={setPage} repositoryId={repositoryId} onAddRepository={addRepository} />}
         {page === 'Files' && <FilesView setPage={setPage} repositoryId={repositoryId} setSelectedFileId={setSelectedFileId} />}
         {page === 'File Detail' && <FileHub setPage={setPage} repositoryId={repositoryId} fileId={selectedFileId} />}
         {page === 'History' && <HistoryView repositoryId={repositoryId} setPage={setPage} setSelectedCommit={setSelectedCommit} />}
