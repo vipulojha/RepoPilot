@@ -102,7 +102,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { 'Content-Type': 'application/json', ...init?.headers },
     ...init,
   })
-  if (!response.ok) throw new Error(`RepoPilot API request failed: ${response.status}`)
+  const contentType = response.headers.get('content-type') ?? ''
+  if (!response.ok) {
+    const detail = contentType.includes('json') ? await response.json().catch(() => null) : null
+    throw new Error(detail?.detail ?? detail?.error?.message ?? `RepoPilot API request failed: ${response.status}`)
+  }
+  if (!contentType.includes('json')) throw new Error(`RepoPilot API returned a non-JSON response for ${path}`)
   return response.json() as Promise<T>
 }
 
@@ -126,7 +131,7 @@ export const api = {
   tree: (repositoryId: number, parentPath = '') => request<{ snapshot_id: number; path: string; items: FileTreeNode[] }>(`/repositories/${repositoryId}/files/tree?parent_path=${encodeURIComponent(parentPath)}`),
   search: (repositoryId: number, query: string) => request<{ snapshot_id: number; items: SearchHit[]; next_cursor: number | null; has_more: boolean }>(`/repositories/${repositoryId}/search?q=${encodeURIComponent(query)}`),
   impact: (repositoryId: number, changedFileIds: number[], maxDepth = 3) => request<{ snapshot_id: number; changed_roots: { file_id: number; path: string }[]; affected_files: ImpactItem[]; counts: Record<string, number> }>(`/repositories/${repositoryId}/impact`, { method: 'POST', body: JSON.stringify({ changed_file_ids: changedFileIds, max_depth: maxDepth }) }),
-  graph: (repositoryId: number, rootFileId: number, direction = 'both', depth = 2) => request<{ snapshot_id: number; root_file_id: number; nodes: GraphNode[]; edges: GraphEdge[]; node_count: number; edge_count: number; truncated: boolean; direction: string; depth: number }>(`/repositories/${repositoryId}/graph?root_file_id=${rootFileId}&direction=${direction}&depth=${depth}`),
+  graph: (repositoryId: number, rootFileId?: number, direction = 'both', depth = 2) => request<{ snapshot_id: number; root_file_id: number; nodes: GraphNode[]; edges: GraphEdge[]; node_count: number; edge_count: number; truncated: boolean; direction: string; depth: number }>(`/repositories/${repositoryId}/graph?${rootFileId ? `root_file_id=${rootFileId}&` : ''}direction=${direction}&depth=${depth}`),
   hotspots: (repositoryId:number) => request<{snapshot_id:number;items:Hotspot[];next_cursor:number|null;has_more:boolean;total:number}>(`/repositories/${repositoryId}/hotspots`),
   sourceTests: (repositoryId:number,fileId:number) => request<{snapshot_id:number;items:TestRelationship[]}>(`/repositories/${repositoryId}/files/${fileId}/tests`),
   testSources: (repositoryId:number,fileId:number) => request<{snapshot_id:number;items:TestRelationship[]}>(`/repositories/${repositoryId}/files/${fileId}/tested-sources`),

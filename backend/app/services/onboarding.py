@@ -18,7 +18,7 @@ class OnboardingService:
     timeout = 20
 
     def inspect(self, db: Session, request: InspectRequest) -> OnboardingResponse:
-        path = Path(request.path).expanduser()
+        path = Path(self._normalize_path(request.path)).expanduser()
         if not path.exists():
             return OnboardingResponse(path=request.path, exists=False, kind=request.kind, message="Path does not exist")
         canonical = path.resolve()
@@ -45,7 +45,7 @@ class OnboardingService:
                                   supported_file=self._supported_file(canonical) if canonical.is_file() else None)
 
     def onboard(self, db: Session, path: str, name: str | None, initialize_git: bool) -> Repository:
-        selected = Path(path).expanduser().resolve(strict=True)
+        selected = Path(self._normalize_path(path)).expanduser().resolve(strict=True)
         root = self._git_root(selected if selected.is_dir() else selected.parent)
         if root is None and initialize_git:
             if not selected.is_dir():
@@ -62,6 +62,12 @@ class OnboardingService:
         return repository
 
     def clone(self, db: Session, request: CloneRequest) -> Repository:
+        identity = self._github_identity(request.url)
+        for candidate in db.scalars(select(Repository)).all():
+            try:
+                remotes = self._git(Path(candidate.path), ["remote", "get-url", "origin"], check=False).strip()
+                if remotes and self._github_identity(remotes) == identity: return candidate
+            except OnboardingError: continue
         destination = Path(request.destination).expanduser().resolve()
         if destination.exists():
             if any(destination.iterdir()):
@@ -93,3 +99,14 @@ class OnboardingService:
     @staticmethod
     def _supported_file(path: Path) -> bool:
         return path.is_file() and path.stat().st_size <= 2_000_000 and path.suffix.lower() not in {".png", ".jpg", ".jpeg", ".gif", ".pdf", ".zip"}
+
+    @staticmethod
+    def _normalize_path(value: str) -> str:
+        match = re.match(r"^([A-Za-z]):[\\/](.*)$", value.strip())
+        return f"/mnt/{match.group(1).lower()}/{match.group(2).replace(chr(92), '/') }" if match else value
+
+    @staticmethod
+    def _github_identity(value: str) -> str:
+        value = value.strip().rstrip("/").removesuffix(".git")
+        match = re.search(r"github\.com[/:]([^/]+)/([^/]+)$", value)
+        return f"{match.group(1).lower()}/{match.group(2).lower()}" if match else ""

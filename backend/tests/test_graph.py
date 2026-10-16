@@ -18,4 +18,5 @@ def test_graph_direction_depth_and_limits(tmp_path: Path):
         outgoing=client.get(f"/api/v1/repositories/{repo['id']}/graph",params={'root_file_id':c['id'],'direction':'outgoing','depth':1}).json(); assert outgoing['node_count']==1
         incoming=client.get(f"/api/v1/repositories/{repo['id']}/graph",params={'root_file_id':c['id'],'direction':'incoming','depth':2}).json(); assert {n['path'] for n in incoming['nodes']} == {'a.ts','b.ts','c.ts'}; assert incoming['edge_count']==2
         limited=client.get(f"/api/v1/repositories/{repo['id']}/graph",params={'root_file_id':c['id'],'direction':'incoming','depth':2,'max_nodes':2}).json(); assert limited['truncated'] is True
+        repository_graph=client.get(f"/api/v1/repositories/{repo['id']}/graph").json(); assert repository_graph['node_count']==3; assert repository_graph['edge_count']==2
     app.dependency_overrides.clear()

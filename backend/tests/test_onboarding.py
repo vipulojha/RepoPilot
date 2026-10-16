@@ -27,6 +27,10 @@ def test_clone_url_validation():
     else: raise AssertionError("non-GitHub URL accepted")
 
 
+def test_windows_path_normalizes_for_wsl():
+    assert OnboardingService._normalize_path(r"C:\ohman\src") == "/mnt/c/ohman/src"
+
+
 class _DB:
     def scalar(self, _): return None
 
