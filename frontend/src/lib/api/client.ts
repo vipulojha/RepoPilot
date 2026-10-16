@@ -97,7 +97,7 @@ export interface DiffLine { type:'add'|'del'|'context'; code:string; old_num?:nu
 export interface ChangedFileAnalysis { git?:GitChangedFile; path:string; old_path:string|null; status:string; additions:number; deletions:number; file_id:number|null; affected:boolean; unresolved:boolean; diff_lines:DiffLine[] }
 export interface ChangesResponse { state:string; repository_id:number; snapshot_id:number|null; git:GitStatus|null; diff:{files:number;additions:number;deletions:number}; changed_files:ChangedFileAnalysis[]; affected_files:ImpactItem[]; hotspots:Hotspot[]; tests:TestRelationship[]; risk:{score:number;level:string;reasons:string[];thresholds:Record<string,number>}; truncated:boolean }
 export type GitAction = 'stage'|'unstage'|'commit'|'branch_create'|'branch_switch'|'fetch'|'push'|'pull'|'revert'|'stash_create'|'stash_list'|'stash_apply'|'stash_pop'|'stash_drop'
-export type GitActionPayload = { action:GitAction; paths?:string[]; message?:string; name?:string; start_point?:string; confirm_dirty?:boolean; remote?:string; branch?:string; commit?:string; confirm?:boolean }
+export type GitActionPayload = { action:GitAction; paths?:string[]; message?:string; name?:string; start_point?:string; confirm_dirty?:boolean; remote?:string; branch?:string; commit?:string; stash?:string; confirm?:boolean }
 export interface GitActionReceipt { action:GitAction; status:'succeeded'|'rejected'|'conflict'|'failed'; message:string; recovery_guidance?:string|null; git:GitStatus|null; intelligence_stale:boolean; stdout_summary?:string|null }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
