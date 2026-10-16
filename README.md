@@ -1,8 +1,6 @@
 # RepoPilot
 
-<video src="./RepoPilot_product_film_visualiza…_1080p_20261016191317.mp4" controls muted playsinline width="100%"></video>
-
-[Watch the RepoPilot product film](./RepoPilot_product_film_visualiza…_1080p_20261016191317.mp4)
+[![Watch the RepoPilot product film](./film/poster.png)](./RepoPilot_product_film_visualiza…_1080p_20261016191317.mp4)
 
 RepoPilot is a local-first repository intelligence workbench. It scans a codebase
 without executing its source, builds a snapshot of files, symbols, imports, and
