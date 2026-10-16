@@ -16,8 +16,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onOpenCommandPalette,
   onRescan,
   onSwitchRepo,
-  activeRepo = 'repo-pilot',
-  activeBranch = 'main',
+  activeRepo = 'No repository',
+  activeBranch = 'no branch',
 }) => {
   return (
     <header className="h-[48px] bg-[#0E131F] border-b border-[#1E2638] px-4 flex items-center justify-between gap-4 select-none shrink-0 z-30">

@@ -26,7 +26,10 @@ class ChangeIntelligenceService:
             return ChangeResponse(state="no_ready_snapshot", repository_id=repository_id, git=status, diff=diff,
                 changed_files=[ChangedFileAnalysis(git=f) for f in files], risk=self._risk(0, 0, 0, diff, 0, 0))
         by_path = {f.relative_path: f for f in db.scalars(select(RepositoryFile).where(RepositoryFile.snapshot_id == snapshot.id)).all()}
-        changed = [ChangedFileAnalysis(git=f, file_id=by_path.get(f.path).id if f.path in by_path else None, unresolved=f.path not in by_path) for f in files]
+        changed = []
+        for f in files:
+            diff_lines = self.git.file_diff(repository_path, f.path) if f.status not in {"untracked"} else []
+            changed.append(ChangedFileAnalysis(git=f, file_id=by_path.get(f.path).id if f.path in by_path else None, unresolved=f.path not in by_path, diff_lines=diff_lines))
         roots = sorted({x.file_id for x in changed if x.file_id is not None})
         affected = analyze_impact(db, snapshot.id, roots, max_depth)[:min(MAX_RESULTS, limit)]
         ids = set(roots) | {item.file_id for item in affected}

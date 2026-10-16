@@ -12,8 +12,9 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
-import { SOURCE_FILES, SourceFileItem } from '../data/mockData';
 import { useHandoffDataContext } from '../lib/handoffData';
+
+type FileRow = { id: string; path: string; name: string; language: string; languageColor: string; fileSize: string; lines: number; fanIn: number | null; impactRisk: 'High' | 'Medium' | 'Low' };
 
 export const FilesView: React.FC<{ onSelectFile?: (id: number) => void }> = ({ onSelectFile }) => {
   const handoffData = useHandoffDataContext();
@@ -31,7 +32,7 @@ export const FilesView: React.FC<{ onSelectFile?: (id: number) => void }> = ({ o
     setOpenFolders((prev) => ({ ...prev, [folder]: !prev[folder] }));
   };
 
-  const sourceFiles: SourceFileItem[] = handoffData?.files.length ? handoffData.files.map(file => ({ id: String(file.id), path: file.relative_path, name: file.name, language: (file.language || file.extension || 'Markdown') as SourceFileItem['language'], languageColor: '#00F2FE', fileSize: `${file.size_bytes ?? 0} B`, lines: file.line_count ?? 0, fanIn: null, impactRisk: 'Low' })) : SOURCE_FILES;
+  const sourceFiles: FileRow[] = (handoffData?.files ?? []).map(file => ({ id: String(file.id), path: file.relative_path, name: file.name, language: file.language || file.extension || 'Unknown', languageColor: '#00F2FE', fileSize: `${file.size_bytes ?? 0} B`, lines: file.line_count ?? 0, fanIn: null, impactRisk: 'Low' }));
   const filteredFiles = sourceFiles.filter(
     (f) =>
       f.path.toLowerCase().includes(filterQuery.toLowerCase()) ||
@@ -194,7 +195,7 @@ export const FilesView: React.FC<{ onSelectFile?: (id: number) => void }> = ({ o
               Source files
             </h2>
             <span className="text-xs font-mono text-[#94A3B8]">
-              87 files · 10,064 lines
+               {handoffData?.overview ? `${handoffData.overview.file_count} files · ${handoffData.overview.total_lines.toLocaleString()} lines` : 'No snapshot loaded'}
             </span>
           </div>
 
@@ -233,6 +234,13 @@ export const FilesView: React.FC<{ onSelectFile?: (id: number) => void }> = ({ o
               </tr>
             </thead>
             <tbody className="divide-y divide-[#1E2638] font-mono text-[12px]">
+              {!filteredFiles.length && (
+                <tr>
+                  <td colSpan={6} className="p-6 text-center text-[11px] text-[#94A3B8]">
+                    {sourceFiles.length ? 'No files match this filter.' : 'No files are available in the current snapshot.'}
+                  </td>
+                </tr>
+              )}
               {filteredFiles.map((file) => {
                 const isSelected = selectedFile === file.path;
                 return (

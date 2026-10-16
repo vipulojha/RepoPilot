@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  FolderGit2,
   GitBranch,
   Terminal,
   ArrowRight,
@@ -19,7 +18,7 @@ export interface OnboardingViewProps {
 }
 
 export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) => {
-  const [repoPath, setRepoPath] = useState('/home/developer/workspace/repo-pilot');
+  const [repoPath, setRepoPath] = useState('');
   const [branch, setBranch] = useState('main');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
@@ -110,47 +109,10 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
             </div>
           </div>
 
-          {/* Recent Repositories */}
           <div className="pt-2">
-            <div className="text-[10px] text-[#94A3B8] uppercase tracking-wider mb-2">
-              Recent Codebases
-            </div>
-            <div className="space-y-1.5 text-[11px]">
-              <div
-                onClick={() => {
-                  setRepoPath('/home/developer/workspace/repo-pilot');
-                  setBranch('main');
-                }}
-                className="flex items-center justify-between p-2.5 bg-[#111622] border border-[#1E2638] hover:border-[#00F2FE] cursor-pointer transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <FolderGit2 className="w-4 h-4 text-[#00F2FE]" />
-                  <span className="font-semibold text-[#DEE2F3]">repo-pilot</span>
-                  <span className="text-[#475569]">/main</span>
-                </div>
-                <div className="flex items-center gap-3 text-[10px] text-[#94A3B8]">
-                  <span>87 files • 10K SLOC</span>
-                  <span>Scanned 2m ago</span>
-                </div>
-              </div>
-
-              <div
-                onClick={() => {
-                  setRepoPath('/home/developer/workspace/inventory-service');
-                  setBranch('develop');
-                }}
-                className="flex items-center justify-between p-2.5 bg-[#111622] border border-[#1E2638] hover:border-[#00F2FE] cursor-pointer transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <FolderGit2 className="w-4 h-4 text-[#9D4EDD]" />
-                  <span className="font-semibold text-[#DEE2F3]">inventory-service</span>
-                  <span className="text-[#475569]">/develop</span>
-                </div>
-                <div className="flex items-center gap-3 text-[10px] text-[#94A3B8]">
-                  <span>42 files • 6.2K SLOC</span>
-                  <span>Scanned yesterday</span>
-                </div>
-              </div>
+            <div className="text-[10px] text-[#94A3B8] uppercase tracking-wider mb-2">Recent Codebases</div>
+            <div className="p-3 bg-[#111622] border border-[#1E2638] text-[11px] text-[#94A3B8]">
+              Recent repositories are loaded from the RepoPilot workspace after you connect one.
             </div>
           </div>
         </div>

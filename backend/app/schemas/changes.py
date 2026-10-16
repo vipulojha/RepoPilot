@@ -15,6 +15,7 @@ class ChangedFileAnalysis(BaseModel):
     file_id: int | None = None
     affected: bool = False
     unresolved: bool = False
+    diff_lines: list[dict[str, int | str]] = []
 
 class ChangeRisk(BaseModel):
     score: int = Field(ge=0, le=100)

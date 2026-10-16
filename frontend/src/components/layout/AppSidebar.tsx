@@ -35,6 +35,8 @@ export type NavigationPage =
 export interface AppSidebarProps {
   currentPage: NavigationPage;
   onNavigate: (page: NavigationPage) => void;
+  activeRepo?: string;
+  activeBranch?: string;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
 }
@@ -42,6 +44,8 @@ export interface AppSidebarProps {
 export const AppSidebar: React.FC<AppSidebarProps> = ({
   currentPage,
   onNavigate,
+  activeRepo = 'No repository',
+  activeBranch = 'no branch',
   collapsed = false,
 }) => {
   const navSections = [
@@ -93,14 +97,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                 <div className="flex items-center gap-1.5 overflow-hidden">
                   <GitBranch className="w-3.5 h-3.5 text-[#00F2FE] shrink-0" />
                   <span className="font-headline font-semibold text-[12px] text-[#F1F5F9] truncate">
-                    repo-pilot
+                    {activeRepo}
                   </span>
                 </div>
                 <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8] shrink-0" />
               </div>
               <div className="mt-1 flex items-center gap-1">
                 <span className="px-1 py-0.2 bg-[#00F2FE]/10 text-[#00F2FE] text-[10px] font-mono">
-                  main [local]
+                  {activeBranch}
                 </span>
               </div>
             </div>

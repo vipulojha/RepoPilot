@@ -86,13 +86,15 @@ export interface GitStatus {
   upstream: GitStatusUpstream | null
   remotes: GitStatusRemote[]
 }
-export interface GitChangedFile { path:string; old_path:string|null; status:string; additions:number; deletions:number; file_id:number|null }
+export interface GitChangedFile { path:string; old_path:string|null; status:string; additions:number; deletions:number; file_id:number|null; unresolved?:boolean; diff_lines?:DiffLine[] }
 export interface GitCommit { sha:string; short_sha:string; subject:string; author:string; committed_at:string; parents:string[]; is_merge:boolean; changed_files:number; additions:number; deletions:number; files:GitChangedFile[] }
 export interface GitHistory { items:GitCommit[]; page:number; limit:number; has_more:boolean; ref:string|null; detached:boolean; empty:boolean }
 export interface GitCommitDetail extends GitCommit {}
 export interface GitFileHistory { file_id:number; path:string; commits:GitCommit[]; next_cursor:string|null; has_more:boolean; truncated:boolean }
 export interface GitCompare { base:string; head:string; files:{path:string;status:string;additions:number;deletions:number;file_id:number|null}[]; additions:number; deletions:number; truncated:boolean }
-export interface ChangesResponse { state:string; repository_id:number; snapshot_id:number|null; git:GitStatus|null; diff:{files:number;additions:number;deletions:number}; changed_files:{file_id:number|null;path:string;status:string;git:unknown;unresolved:boolean}[]; affected_files:ImpactItem[]; hotspots:Hotspot[]; tests:TestRelationship[]; risk:{score:number;level:string;reasons:string[];thresholds:Record<string,number>}; truncated:boolean }
+export interface DiffLine { type:'add'|'del'|'context'; code:string; old_num?:number; new_num?:number }
+export interface ChangedFileAnalysis { git?:GitChangedFile; path:string; old_path:string|null; status:string; additions:number; deletions:number; file_id:number|null; affected:boolean; unresolved:boolean; diff_lines:DiffLine[] }
+export interface ChangesResponse { state:string; repository_id:number; snapshot_id:number|null; git:GitStatus|null; diff:{files:number;additions:number;deletions:number}; changed_files:ChangedFileAnalysis[]; affected_files:ImpactItem[]; hotspots:Hotspot[]; tests:TestRelationship[]; risk:{score:number;level:string;reasons:string[];thresholds:Record<string,number>}; truncated:boolean }
 export type GitAction = 'stage'|'unstage'|'commit'|'branch_create'|'branch_switch'|'fetch'|'push'|'pull'|'revert'|'stash_create'|'stash_list'|'stash_apply'|'stash_pop'|'stash_drop'
 export type GitActionPayload = { action:GitAction; paths?:string[]; message?:string; name?:string; start_point?:string; confirm_dirty?:boolean; remote?:string; branch?:string; commit?:string; confirm?:boolean }
 export interface GitActionReceipt { action:GitAction; status:'succeeded'|'rejected'|'conflict'|'failed'; message:string; recovery_guidance?:string|null; git:GitStatus|null; intelligence_stale:boolean; stdout_summary?:string|null }

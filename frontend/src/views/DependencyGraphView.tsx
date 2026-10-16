@@ -13,13 +13,14 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useHandoffDataContext } from '../lib/handoffData';
-import type { GraphNode } from '../data/mockData';
+
+type GraphRenderNode = { id: string; label: string; sublabel: string; category: string; x: number; y: number; risk: string; fanIn: number; fanOut: number };
 
 export const DependencyGraphView: React.FC = () => {
   const handoffData = useHandoffDataContext();
-  const GRAPH_NODES: GraphNode[] = (handoffData?.graph.nodes ?? []).map((node, index) => ({ id: String(node.id), label: node.name ?? node.path, sublabel: node.path, category: 'core', x: 80 + (index % 3) * 240, y: 60 + Math.floor(index / 3) * 120, risk: 'low', fanIn: node.incoming, fanOut: node.outgoing } as unknown as GraphNode));
+  const GRAPH_NODES: GraphRenderNode[] = (handoffData?.graph.nodes ?? []).map((node, index) => ({ id: String(node.id), label: node.name ?? node.path, sublabel: node.path, category: 'core', x: 80 + (index % 3) * 240, y: 60 + Math.floor(index / 3) * 120, risk: 'low', fanIn: node.incoming, fanOut: node.outgoing }));
   const GRAPH_EDGES = (handoffData?.graph.edges ?? []).map(edge => ({ source: String(edge.source), target: String(edge.target), type: edge.kind === 'import' ? 'direct' : 'transitive' }));
-  const [selectedNodeId, setSelectedNodeId] = useState<string>('core/auth.ts');
+  const [selectedNodeId, setSelectedNodeId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [depth, setDepth] = useState('2');
   const [zoomLevel, setZoomLevel] = useState(100);
@@ -94,7 +95,7 @@ export const DependencyGraphView: React.FC = () => {
 
           {/* Node & Edge count badge */}
           <div className="px-2.5 py-1 bg-[#00F2FE]/10 border border-[#00F2FE]/30 text-[#00F2FE] text-[11px] font-mono">
-            87 nodes • 214 edges
+            {GRAPH_NODES.length} nodes • {GRAPH_EDGES.length} edges
           </div>
 
           {/* Analyze Selected Action */}
@@ -269,7 +270,7 @@ export const DependencyGraphView: React.FC = () => {
             <Grid className="w-4 h-4" />
           </button>
           <button
-            onClick={() => setSelectedNodeId('core/auth.ts')}
+            onClick={() => setSelectedNodeId(GRAPH_NODES[0]?.id ?? '')}
             className="w-8 h-8 flex items-center justify-center text-[#94A3B8] hover:text-[#00F2FE] hover:bg-[#182030] cursor-pointer"
             title="Reset Focus"
           >

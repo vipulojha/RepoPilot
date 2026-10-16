@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Gauge, ShieldAlert, Cpu, Activity, RefreshCw } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { useHandoffDataContext } from '../lib/handoffData';
 
 interface AtlasNode {
   id: string;
@@ -14,30 +15,22 @@ interface AtlasNode {
 }
 
 export const DependencyAtlasView: React.FC = () => {
-  const [activeNode, setActiveNode] = useState<string>('tokenValidator.ts');
+  const data = useHandoffDataContext();
+  const nodes: AtlasNode[] = useMemo(() => (data?.graph.nodes ?? []).map((node, index) => {
+    const columns = 6;
+    const language = (node.language || 'FILE').slice(0, 2).toUpperCase();
+    return { id: String(node.id), name: node.name || node.path, tag: language, tagColor: node.is_test ? '#FFB703' : '#00F2FE', detail: `${node.incoming + node.outgoing} links | ${node.incoming} in / ${node.outgoing} out`, x: 100 + (index % columns) * 160, y: 120 + Math.floor(index / columns) * 90, couplingBadge: node.incoming + node.outgoing > 8 ? { label: 'High coupling', color: '#FFB703' } : undefined };
+  }), [data]);
+  const [activeNode, setActiveNode] = useState<string>('');
+  const selectedNode = data?.graph.nodes.find(node => String(node.id) === activeNode);
 
-  const nodes: AtlasNode[] = [
-    { id: 'api-gateway.go-top', name: 'api-gateway.go', tag: 'GO', tagColor: '#00F2FE', detail: '299 size | 1 functions', x: 420, y: 70 },
-    { id: 'api-gateway.go-left', name: 'api-gateway.go', tag: 'GO', tagColor: '#00F2FE', detail: '3.08 size | Junctions', x: 80, y: 350 },
-    { id: 'tokenValidator.ts-top', name: 'tokenValidator.ts', tag: 'TS', tagColor: '#00F2FE', detail: '703 line | 1 functions', x: 260, y: 170 },
-    { id: 'tokenValidator.ts-mid', name: 'tokenValidator.ts', tag: 'TS', tagColor: '#00F2FE', detail: '328 line | 1 functions', x: 190, y: 260 },
-    { id: 'router.ts', name: 'router.ts', tag: 'TS', tagColor: '#00F2FE', detail: '138 line | 1 functions', x: 310, y: 260 },
-    { id: 'db-pool.rs', name: 'db-pool.rs', tag: 'RS', tagColor: '#FFB703', detail: '700 lines | signatures', x: 440, y: 260, couplingBadge: { label: 'Inert coupling', color: '#FFB703' } },
-    { id: 'oauth-service.py', name: 'oauth-service.py', tag: 'PY', tagColor: '#FFB703', detail: '289 line | signatures', x: 570, y: 260 },
-    { id: 'config-loader.rs-1', name: 'config-loader.rs', tag: 'RS', tagColor: '#FFB703', detail: '708 line | signatures', x: 700, y: 180 },
-    { id: 'config-loader.rs-2', name: 'config-loader.rs', tag: 'RS', tagColor: '#FFB703', detail: 'functions | signatures', x: 700, y: 260, couplingBadge: { label: 'cyclic link', color: '#FFB703' } },
-    { id: 'data-pipeline.go-1', name: 'data-pipeline.go', tag: 'GO', tagColor: '#00F2FE', detail: '218 size | signatures', x: 830, y: 260 },
-    { id: 'tokenValidator.ts-mid2', name: 'tokenValidator.ts', tag: 'TS', tagColor: '#00F2FE', detail: '296 size | 1 functions', x: 310, y: 370 },
-    { id: 'db-pool.rs-2', name: 'db-pool.rs', tag: 'RS', tagColor: '#FFB703', detail: '178 line | signatures', x: 440, y: 370, couplingBadge: { label: 'High coupling', color: '#FFB703' } },
-    { id: 'oauth-service.py-2', name: 'oauth-service.py', tag: 'PY', tagColor: '#FFB703', detail: '275 line | 1 junctions', x: 570, y: 370 },
-    { id: 'config-loader.rs-3', name: 'config-loader.rs', tag: 'RS', tagColor: '#FFB703', detail: 'functions | signatures', x: 700, y: 370 },
-    { id: 'data-pipeline.go-2', name: 'data-pipeline.go', tag: 'GO', tagColor: '#00F2FE', detail: '388 line | signatures', x: 830, y: 370 },
-    { id: 'tokenValidator.ts-bot', name: 'tokenValidator.ts', tag: 'TS', tagColor: '#00F2FE', detail: '588 size | functions', x: 190, y: 480 },
-    { id: 'router.quer', name: 'router.query', tag: 'TS', tagColor: '#00F2FE', detail: '578 size | Functions', x: 310, y: 480 },
-    { id: 'oauth-service.py-3', name: 'oauth-service.py', tag: 'PY', tagColor: '#FFB703', detail: '179 line | signatures', x: 440, y: 480 },
-    { id: 'tokenValidator.rs-low', name: 'tokenValidator.ts', tag: 'RS', tagColor: '#FFB703', detail: '230 size | signatures', x: 440, y: 590, couplingBadge: { label: 'High coupling', color: '#FFB703' } },
-    { id: 'db-service.py', name: 'db-service.py', tag: 'BS', tagColor: '#FFB703', detail: '238 size | signatures', x: 440, y: 700, couplingBadge: { label: 'cyclic link', color: '#FFB703' } },
-  ];
+  /* Positions are presentation-only; topology and labels come from the graph API. */
+  const graphEdges = data?.graph.edges ?? [];
+  const nodeById = new Map(nodes.map(node => [node.id, node]));
+  const edgePaths = graphEdges.flatMap(edge => {
+    const source = nodeById.get(String(edge.source)); const target = nodeById.get(String(edge.target));
+    return source && target ? [`M ${source.x} ${source.y} L ${target.x} ${target.y}`] : [];
+  });
 
   return (
     <div className="flex flex-col h-full w-full bg-[#07090E] select-none overflow-hidden relative font-mono text-[#DEE2F3]">
@@ -58,19 +51,19 @@ export const DependencyAtlasView: React.FC = () => {
         <div className="flex items-center gap-6 text-[11px] text-[#94A3B8]">
           <div>
             <span className="text-[#475569] block text-[9px]">TELEMETRY</span>
-            <span className="text-[#DEE2F3]">12.5K / 1855</span>
+            <span className="text-[#DEE2F3]">{data?.graph.nodes.length ?? 0} / {data?.graph.edges.length ?? 0}</span>
           </div>
           <div>
-            <span className="text-[#475569] block text-[9px]">MCYS</span>
-            <span className="text-[#00F2FE]">2.3%</span>
-          </div>
-          <div>
-            <span className="text-[#475569] block text-[9px]">VERSION</span>
-            <span className="text-[#DEE2F3]">23029</span>
+            <span className="text-[#475569] block text-[9px]">EDGE DENSITY</span>
+            <span className="text-[#00F2FE]">{nodes.length ? `${(graphEdges.length / nodes.length).toFixed(2)} / node` : '—'}</span>
           </div>
           <div>
             <span className="text-[#475569] block text-[9px]">VERSION</span>
-            <span className="text-[#DEE2F3]">W00D22</span>
+            <span className="text-[#DEE2F3]">{selectedNode?.name ?? '—'}</span>
+          </div>
+          <div>
+            <span className="text-[#475569] block text-[9px]">SNAPSHOT</span>
+            <span className="text-[#DEE2F3]">{data?.overview?.snapshot_id ?? '—'}</span>
           </div>
           <div className="flex items-center gap-1.5 pl-3 border-l border-[#1E2638]">
             <span className="w-2 h-2 rounded-full bg-[#06D6A0] animate-pulse" />
@@ -91,7 +84,7 @@ export const DependencyAtlasView: React.FC = () => {
             </svg>
             <Gauge className="w-5 h-5 text-[#00F2FE] absolute" />
           </div>
-          <div className="text-[10px] text-[#94A3B8] mt-2">NODE COUNT: 342</div>
+           <div className="text-[10px] text-[#94A3B8] mt-2">NODE COUNT: {data?.graph.nodes.length ?? 0}</div>
         </div>
 
         {/* Right Risk Index Gauge */}
@@ -102,7 +95,7 @@ export const DependencyAtlasView: React.FC = () => {
               <circle cx="30" cy="30" r="22" stroke="#1E2638" strokeWidth="3" fill="none" />
               <circle cx="30" cy="30" r="22" stroke="#FFB703" strokeWidth="3" strokeDasharray="75 100" fill="none" />
             </svg>
-            <span className="text-[14px] font-bold text-[#FFB703] absolute font-headline">342</span>
+             <span className="text-[14px] font-bold text-[#FFB703] absolute font-headline">{data?.graph.edges.length ?? 0}</span>
           </div>
           <div className="text-[9px] text-[#FFB703] mt-2 uppercase tracking-wider">ELEVATED EXPOSURE</div>
         </div>
@@ -119,39 +112,16 @@ export const DependencyAtlasView: React.FC = () => {
           </defs>
 
           {/* Cyan Primary Highway Circuit Track */}
-          <path
-            d="M 170 370 H 420 V 90 H 510 M 510 90 H 870 V 270 M 170 370 H 130 V 710 H 440 M 170 490 H 145 V 720 H 440"
-            fill="none"
-            stroke="#00F2FE"
-            strokeWidth="2.5"
-            filter="url(#glow-cyan)"
-          />
-
-          {/* Violet Cross-Bus Lines */}
-          <path
-            d="M 260 280 H 750 V 380 M 360 280 V 500 H 600 M 470 280 V 700"
-            fill="none"
-            stroke="#9D4EDD"
-            strokeWidth="1.5"
-            strokeDasharray="4 3"
-          />
-
-          {/* Amber Downstream Coupling Lines */}
-          <path
-            d="M 490 280 V 370 M 620 280 V 600 H 700 M 750 280 V 370"
-            fill="none"
-            stroke="#FFB703"
-            strokeWidth="1.5"
-          />
+           {edgePaths.map((path, index) => <path key={index} d={path} fill="none" stroke="#00F2FE" strokeWidth="1.5" opacity="0.65" />)}
 
           {/* Render Atlas Nodes */}
           {nodes.map((node) => {
-            const isSelected = activeNode === node.name;
+                 const isSelected = activeNode === node.id;
             return (
               <g
                 key={node.id}
                 transform={`translate(${node.x - 60}, ${node.y - 20})`}
-                onClick={() => setActiveNode(node.name)}
+                 onClick={() => setActiveNode(node.id)}
                 className="cursor-pointer"
               >
                 {/* Node Box */}

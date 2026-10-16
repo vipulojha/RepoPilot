@@ -64,6 +64,27 @@ class GitService:
                 item.deletions = 0 if deletions == "-" else int(deletions)
         return result
 
+    def file_diff(self, repository_path: str | Path, path: str) -> list[dict[str, int | str]]:
+        root = self._validate_root(repository_path)
+        self._paths(root, [path])
+        raw = self._run(root, ["diff", "HEAD", "--unified=200", "--", path], check=False)
+        lines: list[dict[str, int | str]] = []
+        old_num = new_num = 0
+        for raw_line in raw.splitlines():
+            if raw_line.startswith("@@"):
+                match = re.search(r"-(\d+)(?:,\d+)? \+(\d+)(?:,\d+)?", raw_line)
+                if match:
+                    old_num, new_num = int(match.group(1)), int(match.group(2))
+                continue
+            if raw_line.startswith(("---", "+++")) or not raw_line.startswith(("+", "-", " ")):
+                continue
+            kind = "add" if raw_line.startswith("+") else "del" if raw_line.startswith("-") else "context"
+            item: dict[str, int | str] = {"type": kind, "code": raw_line[1:]}
+            if kind != "add": item["old_num"] = old_num; old_num += 1
+            if kind != "del": item["new_num"] = new_num; new_num += 1
+            lines.append(item)
+        return lines
+
     def action(self, repository_path: str | Path, action: str, **kwargs):
         root = self._validate_root(repository_path)
         with self._lock(root):

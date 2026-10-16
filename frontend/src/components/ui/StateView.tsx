@@ -86,7 +86,7 @@ interface ErrorStateProps {
 
 export const ErrorState: React.FC<ErrorStateProps> = ({
   title = 'AST Parse Interrupt',
-  error = 'SyntaxError: Unexpected token in packages/auth/tokenValidator.ts (Line 42:18)',
+  error = 'The repository analysis service returned an error. Retry the current operation or rescan the repository.',
   onRetry,
 }) => {
   return (

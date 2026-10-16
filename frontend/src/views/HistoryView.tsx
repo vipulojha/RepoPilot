@@ -10,12 +10,12 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { useHandoffDataContext } from '../lib/handoffData';
-import type { CommitItem } from '../data/mockData';
+type HistoryCommit = { hash: string; shortHash: string; message: string; author: string; timestamp: string; filesChanged: number; additions: number; deletions: number; details?: { files: { path: string; adds: number; dels: number }[]; warning?: string } };
 
 export const HistoryView: React.FC = () => {
   const handoffData = useHandoffDataContext();
-  const HISTORY_COMMITS: CommitItem[] = (handoffData?.history?.items ?? []).map(commit => ({ hash: commit.sha, shortHash: commit.short_sha, message: commit.subject, author: commit.author, timestamp: commit.committed_at, filesChanged: commit.changed_files, additions: commit.additions, deletions: commit.deletions }));
-  const [selectedCommit, setSelectedCommit] = useState<CommitItem | null>(null);
+  const HISTORY_COMMITS: HistoryCommit[] = (handoffData?.history?.items ?? []).map(commit => ({ hash: commit.sha, shortHash: commit.short_sha, message: commit.subject, author: commit.author, timestamp: commit.committed_at, filesChanged: commit.changed_files, additions: commit.additions, deletions: commit.deletions, details: { files: commit.files.map(file => ({ path: file.path, adds: file.additions, dels: file.deletions })) } }));
+  const [selectedCommit, setSelectedCommit] = useState<HistoryCommit | null>(null);
 
   return (
     <div className="flex flex-col h-full w-full bg-[#0B0E14] select-none overflow-hidden font-mono text-[#DEE2F3]">
@@ -98,23 +98,6 @@ export const HistoryView: React.FC = () => {
                       <span>{commit.timestamp}</span>
                     </div>
 
-                    {/* Impact Tags */}
-                    {commit.tags && (
-                      <div className="flex items-center gap-1.5">
-                        {commit.tags.map((tag, tIdx) => (
-                          <span
-                            key={tIdx}
-                            className={`px-2 py-0.2 text-[10px] font-semibold uppercase ${
-                              tag.type === 'clean'
-                                ? 'bg-[#06D6A0]/10 border border-[#06D6A0]/40 text-[#06D6A0]'
-                                : 'bg-[#FFB703]/10 border border-[#FFB703]/40 text-[#FFB703]'
-                            }`}
-                          >
-                            {tag.label}
-                          </span>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -128,13 +111,7 @@ export const HistoryView: React.FC = () => {
              Commit Detail - {selectedCommit?.shortHash ?? 'Select a commit'}
           </div>
 
-          {/* High-Impact Warning Card */}
-          <div className="my-4 p-3 bg-[#FFB703]/10 border border-[#FFB703]/40 text-[#FFB703] text-[11px]">
-            <div className="flex items-center gap-2 font-semibold">
-              <AlertTriangle className="w-4 h-4 shrink-0" />
-              <span>High-Impact warning: module boundary cross</span>
-            </div>
-          </div>
+          {selectedCommit?.details?.warning && <div className="my-4 p-3 bg-[#FFB703]/10 border border-[#FFB703]/40 text-[#FFB703] text-[11px]"><div className="flex items-center gap-2 font-semibold"><AlertTriangle className="w-4 h-4 shrink-0" /><span>{selectedCommit.details.warning}</span></div></div>}
 
           {/* File Changes List */}
           <div className="space-y-1.5">
@@ -142,16 +119,7 @@ export const HistoryView: React.FC = () => {
               Modified Files in Scope
             </div>
 
-            {[
-              { path: 'README.md', adds: 1, dels: 1 },
-              { path: 'src/auth.ts', adds: 1, dels: 1 },
-              { path: 'src/auth.ts', adds: 1, dels: 1 },
-              { path: 'src/auth.ts', adds: 1, dels: 1 },
-              { path: 'src/auth.ts', adds: 1, dels: 1 },
-              { path: 'README.suite.md', adds: 1, dels: 1 },
-              { path: 'peer_main.ts', adds: 1, dels: 1 },
-              { path: 'src/auth.ts', adds: 1, dels: 1 },
-            ].map((f, i) => (
+            {(selectedCommit?.details?.files ?? []).map((f, i) => (
               <div
                 key={i}
                 className="flex items-center justify-between p-2 bg-[#111622] border border-[#1E2638] text-[11px] hover:border-[#2D3A54]"
@@ -167,6 +135,7 @@ export const HistoryView: React.FC = () => {
                 </div>
               </div>
             ))}
+            {!selectedCommit && <div className="p-3 text-[11px] text-[#94A3B8]">Select a commit to inspect its changed files.</div>}
           </div>
         </div>
       </div>

@@ -186,9 +186,9 @@ function App() {
   return <>
     <div className="flex flex-col h-screen w-screen bg-[#0B0E14] text-[#DEE2F3] overflow-hidden select-none">
       <div className="flex-1 flex overflow-hidden">
-        <AppSidebar currentPage={handoffPage} onNavigate={next => navigate(next === 'overview' ? 'Dashboard' : next === 'files' ? 'Files' : next === 'search' ? 'Search' : next === 'dependency-graph' ? 'Dependency Graph' : next === 'dependency-atlas' ? 'Dependency Atlas' : next === 'impact-analysis' ? 'Impact Analysis' : next === 'change-intelligence' ? 'Change Intelligence' : next === 'git-actions' ? 'Git Actions' : next === 'onboarding' ? 'Onboarding' : next[0].toUpperCase() + next.slice(1))} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(value => !value)} />
+        <AppSidebar currentPage={handoffPage} activeRepo={selectedRepository?.name ?? 'No repository'} activeBranch={selectedRepository?.branch ?? 'no branch'} onNavigate={next => navigate(next === 'overview' ? 'Dashboard' : next === 'files' ? 'Files' : next === 'search' ? 'Search' : next === 'dependency-graph' ? 'Dependency Graph' : next === 'dependency-atlas' ? 'Dependency Atlas' : next === 'impact-analysis' ? 'Impact Analysis' : next === 'change-intelligence' ? 'Change Intelligence' : next === 'git-actions' ? 'Git Actions' : next === 'onboarding' ? 'Onboarding' : next[0].toUpperCase() + next.slice(1))} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(value => !value)} />
         <div className="flex-1 flex flex-col overflow-hidden bg-[#0B0E14]">
-          <AppHeader currentViewTitle={handoffPage} activeRepo={selectedRepository?.name ?? 'repo-pilot'} activeBranch={selectedRepository?.branch ?? 'main'} onOpenCommandPalette={() => setPaletteOpen(true)} onRescan={() => void rescan()} onSwitchRepo={() => openOnboarding()} />
+          <AppHeader currentViewTitle={handoffPage} activeRepo={selectedRepository?.name ?? 'No repository'} activeBranch={selectedRepository?.branch ?? 'no branch'} onOpenCommandPalette={() => setPaletteOpen(true)} onRescan={() => void rescan()} onSwitchRepo={() => openOnboarding()} />
           <main className="flex-1 overflow-auto relative">
             <div className="rp-workspace-wrap">
         {feedback && <div className="rp-feedback" role="status"><Activity size={14} />{feedback}<button onClick={() => setFeedback('')} aria-label="Dismiss feedback"><X size={14} /></button></div>}
@@ -241,9 +241,9 @@ function renderPage({ page, repository, repositoryId, selectedFileId, selectedCo
     case 'Search': return handoff(() => <SearchView repositoryId={repositoryId} onSelectFile={selectFile} />)
     case 'Dependency Graph': return handoff(() => <DependencyGraphView />)
     case 'Dependency Atlas': return handoff(() => <DependencyAtlasView />)
-    case 'Impact Analysis': return handoff(() => <ImpactAnalysisView />)
+    case 'Impact Analysis': return handoff(() => <ImpactAnalysisView repositoryId={repositoryId} selectedFileId={selectedFileId} />)
     case 'Hotspots': return handoff(() => <HotspotsView onAnalyzeImpact={() => setPage('Impact Analysis')} />)
-    case 'Tests': return handoff(() => <TestsView />)
+    case 'Tests': return handoff(() => <TestsView repositoryId={repositoryId} selectedFileId={selectedFileId} />)
     case 'Status': return <GitStatusPanel repositoryId={repositoryId} />
     case 'Change Intelligence': return handoff(() => <ChangeIntelligenceView />)
     case 'Git Actions': return handoff(() => <GitActionsView repositoryId={repositoryId} />)

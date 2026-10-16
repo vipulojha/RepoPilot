@@ -46,6 +46,8 @@ def test_clean_and_unstaged_change_are_analyzed(tmp_path):
     assert changed["diff"]["files"] == 1
     assert changed["diff"]["additions"] == 1
     assert changed["changed_files"][0]["git"]["status"] == "modified"
+    assert any(line["type"] == "del" and "return 1" in line["code"] for line in changed["changed_files"][0]["diff_lines"])
+    assert any(line["type"] == "add" and "return 2" in line["code"] for line in changed["changed_files"][0]["diff_lines"])
     main.app.dependency_overrides.clear()
 
 

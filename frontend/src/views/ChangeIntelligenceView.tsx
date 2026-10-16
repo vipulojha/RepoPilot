@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   AlertTriangle,
   CheckSquare,
@@ -12,11 +12,17 @@ import {
   FolderTree,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
-import { DIFF_DATA } from '../data/mockData';
+import { useHandoffDataContext } from '../lib/handoffData';
 
 export const ChangeIntelligenceView: React.FC = () => {
+  const data = useHandoffDataContext();
+  const changes = data?.changedFiles ?? [];
+  const affectedFiles = data?.affectedFiles ?? [];
+  const risk = data?.changeRisk;
+  const stats = data?.changeStats;
   const [isSplitView, setIsSplitView] = useState(true);
-  const [selectedFile, setSelectedFile] = useState(DIFF_DATA.changedFiles[0].path);
+  const [selectedFile, setSelectedFile] = useState(changes[0]?.path ?? '');
+  const selectedAnalysis = useMemo(() => data?.changedFiles.find(file => file.path === selectedFile), [data, selectedFile]);
 
   return (
     <div className="flex flex-col h-full w-full bg-[#0B0E14] select-none overflow-hidden font-mono text-[#DEE2F3]">
@@ -29,7 +35,7 @@ export const ChangeIntelligenceView: React.FC = () => {
               Changed files
             </div>
             <div className="flex items-center justify-between text-[10px] text-[#94A3B8] uppercase mb-2">
-              <span>CHANGED FILES (3)</span>
+              <span>CHANGED FILES ({changes.length})</span>
               <span>L1</span>
             </div>
             <div className="relative">
@@ -43,7 +49,7 @@ export const ChangeIntelligenceView: React.FC = () => {
           </div>
 
           <div className="p-2 space-y-1 overflow-y-auto">
-            {DIFF_DATA.changedFiles.map((f, i) => {
+            {changes.map((f, i) => {
               const isSelected = selectedFile === f.path;
               return (
                 <div
@@ -58,7 +64,7 @@ export const ChangeIntelligenceView: React.FC = () => {
                   <div className="flex items-center gap-1.5 mb-1">
                     <input
                       type="checkbox"
-                      defaultChecked={f.selected}
+                      defaultChecked
                       className="accent-[#00F2FE] cursor-pointer"
                     />
                     <span className="text-[11px] font-semibold text-[#DEE2F3] truncate">
@@ -68,21 +74,21 @@ export const ChangeIntelligenceView: React.FC = () => {
 
                   <div className="flex items-center justify-between pl-5 text-[10px]">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[#FFB703] font-bold">M</span>
+                       <span className="text-[#FFB703] font-bold">{f.status.slice(0, 1).toUpperCase()}</span>
                       <span
                         className={`px-1 py-0.2 uppercase font-semibold ${
-                          f.risk === 'High Risk'
+                           data?.hotspots.some(h => h.file_id === f.file_id && h.score >= 67)
                             ? 'bg-[#EF476F]/20 text-[#EF476F]'
                             : 'bg-[#06D6A0]/20 text-[#06D6A0]'
                         }`}
                       >
-                        {f.risk}
+                        {data?.hotspots.some(h => h.file_id === f.file_id && h.score >= 67) ? 'High Risk' : 'Tracked'}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-1">
-                      <span className="text-[#06D6A0]">+{f.additions}</span>
-                      <span className="text-[#EF476F]">/-{f.deletions}</span>
+                       <span className="text-[#06D6A0]">+{f.additions}</span>
+                       <span className="text-[#EF476F]">/-{f.deletions}</span>
                     </div>
                   </div>
                 </div>
@@ -124,7 +130,7 @@ export const ChangeIntelligenceView: React.FC = () => {
             {/* Left side (Original / Deletions) */}
             <div className="flex-1 border-r border-[#1E2638] bg-[#0B0E14] overflow-x-auto">
               <div className="py-2">
-                {DIFF_DATA.leftLines.map((line, idx) => {
+                {(selectedAnalysis?.diff_lines ?? []).filter(line => line.type !== 'add').map((line, idx) => {
                   const isDel = line.type === 'del';
                   return (
                     <div
@@ -134,7 +140,7 @@ export const ChangeIntelligenceView: React.FC = () => {
                       }`}
                     >
                       <span className="w-8 shrink-0 text-[#475569] select-none text-right pr-2">
-                        {line.num}
+                        {line.old_num ?? ''}
                       </span>
                       <span className="font-mono whitespace-pre">{line.code}</span>
                     </div>
@@ -146,7 +152,7 @@ export const ChangeIntelligenceView: React.FC = () => {
             {/* Right side (Modified / Additions) */}
             <div className="flex-1 bg-[#0B0E14] overflow-x-auto">
               <div className="py-2">
-                {DIFF_DATA.rightLines.map((line, idx) => {
+                {(selectedAnalysis?.diff_lines ?? []).filter(line => line.type !== 'del').map((line, idx) => {
                   const isAdd = line.type === 'add';
                   return (
                     <div
@@ -156,7 +162,7 @@ export const ChangeIntelligenceView: React.FC = () => {
                       }`}
                     >
                       <span className="w-8 shrink-0 text-[#475569] select-none text-right pr-2">
-                        {line.num}
+                        {line.new_num ?? ''}
                       </span>
                       <span className="font-mono whitespace-pre">{line.code}</span>
                     </div>
@@ -175,13 +181,13 @@ export const ChangeIntelligenceView: React.FC = () => {
             </div>
 
             {/* High Risk Alert Banner */}
-            <div className="mt-3 p-3 bg-[#FFB703]/10 border border-[#FFB703]/40 text-[#FFB703] text-[11px]">
+            <div className={`mt-3 p-3 border text-[11px] ${risk?.level === 'high' ? 'bg-[#EF476F]/10 border-[#EF476F]/40 text-[#EF476F]' : 'bg-[#FFB703]/10 border-[#FFB703]/40 text-[#FFB703]'}`}>
               <div className="flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                 <div>
-                  <div className="font-bold">High Risk Alert</div>
+                  <div className="font-bold">{risk ? `${risk.level} risk` : 'Risk unavailable'}</div>
                   <div className="text-[10px] text-[#DEE2F3] mt-1 font-sans-geist">
-                    Uncommitted mutation touches high fan-in symbol with 34 downstream callers
+                    {risk?.reasons?.length ? risk.reasons.join(' · ') : 'The change API returned no risk explanation for this snapshot.'}
                   </div>
                 </div>
               </div>
@@ -192,14 +198,14 @@ export const ChangeIntelligenceView: React.FC = () => {
               <div className="p-2.5 bg-[#111622] border border-[#1E2638]">
                 <div className="text-[#94A3B8] text-[10px]">Total Blast Scope</div>
                 <div className="font-headline font-bold text-lg text-[#F1F5F9] mt-0.5">
-                  14 files
+                  {stats?.files ?? changes.length} files · +{stats?.additions ?? 0}/-{stats?.deletions ?? 0}
                 </div>
               </div>
 
               <div className="p-2.5 bg-[#111622] border border-[#1E2638]">
                 <div className="text-[#94A3B8] text-[10px]">Affected Symbols</div>
                 <div className="font-mono font-semibold text-[11px] text-[#00F2FE] truncate mt-1">
-                  validateSessionToken
+                  {affectedFiles.length ? `${affectedFiles.length} affected files` : '—'}
                 </div>
               </div>
             </div>
@@ -208,11 +214,11 @@ export const ChangeIntelligenceView: React.FC = () => {
             <div className="p-2.5 bg-[#111622] border border-[#1E2638] mt-2">
               <div className="text-[#94A3B8] text-[10px] mb-1">Mapped Test Suites</div>
               <div className="font-headline font-bold text-base text-[#00F2FE]">
-                2 test suites
+                {data?.tests.length ?? 0} test suites
               </div>
               <div className="text-[10px] text-[#94A3B8] space-y-0.5 mt-1">
-                <div>tests/auth.test.ts ↗</div>
-                <div>tests/session.test.ts ↗</div>
+                {data?.tests.slice(0, 2).map(test => <div key={`${test.test_file_id}-${test.source_file_id}`}>{test.test_path} ↗</div>)}
+                {!data?.tests.length && <div>No test relationships returned.</div>}
               </div>
             </div>
 
@@ -223,15 +229,10 @@ export const ChangeIntelligenceView: React.FC = () => {
               </div>
               <div className="p-2.5 bg-[#111622] border border-[#1E2638] text-[10px] space-y-1">
                 <div className="text-[#00F2FE] font-bold">
-                  □ validateSessionToken
+                  □ {selectedAnalysis?.path ?? 'No changed file selected'}
                 </div>
                 <div className="pl-4 text-[#94A3B8] space-y-0.5 border-l border-[#1E2638] ml-2">
-                  <div>↳ dependent services</div>
-                  <div className="pl-3 border-l border-[#1E2638] ml-1">
-                    <div>□ validateSessionToken/route/services</div>
-                    <div>□ validateSessionToken/routes</div>
-                    <div>□ validateSessionToken/routeservice...</div>
-                  </div>
+                  {affectedFiles.length ? affectedFiles.slice(0, 6).map(file => <div key={`${file.file_id}-${file.depth}`}>↳ {file.path} · depth {file.depth}</div>) : <div>↳ No affected files returned</div>}
                 </div>
               </div>
             </div>

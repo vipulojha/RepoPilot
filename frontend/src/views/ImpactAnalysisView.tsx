@@ -1,21 +1,31 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Activity,
   AlertTriangle,
-  CheckCircle2,
   Play,
   RefreshCw,
   Settings,
-  ChevronDown,
   Sparkles,
-  ShieldAlert,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
-import { AST_SIGNAL_PIPELINE } from '../data/mockData';
+import { api, type ImpactItem } from '../lib/api/client';
 
-export const ImpactAnalysisView: React.FC = () => {
+export const ImpactAnalysisView: React.FC<{ repositoryId: number | null; selectedFileId: number | null }> = ({ repositoryId, selectedFileId }) => {
   const [isTracingActive, setIsTracingActive] = useState<boolean>(true);
-  const [selectedStage, setSelectedStage] = useState<number | null>(null);
+  const [state, setState] = useState<{ loading: boolean; error: string | null; data: Awaited<ReturnType<typeof api.impact>> | null }>({ loading: false, error: null, data: null });
+  useEffect(() => {
+    if (!repositoryId || !selectedFileId) { setState({ loading: false, error: null, data: null }); return; }
+    let active = true;
+    setState({ loading: true, error: null, data: null });
+    api.impact(repositoryId, [selectedFileId]).then(data => active && setState({ loading: false, error: null, data })).catch(error => active && setState({ loading: false, error: error instanceof Error ? error.message : 'Unable to load impact analysis.', data: null }));
+    return () => { active = false; };
+  }, [repositoryId, selectedFileId]);
+  const items = state.data?.affected_files ?? [];
+  const direct = items.filter(item => item.depth === 1);
+  const transitive = items.filter(item => item.depth > 1);
+  const root = state.data?.changed_roots[0];
+  const count = (name: string, fallback: number) => state.data?.counts[name] ?? fallback;
+  const empty = <div className="p-3 bg-[#111622] border border-[#1E2638] text-[11px] text-[#94A3B8]">No data returned for this stage.</div>;
 
   return (
     <div className="flex flex-col h-full w-full bg-[#080B10] select-none overflow-hidden relative font-mono text-[#DEE2F3]">
@@ -34,7 +44,7 @@ export const ImpactAnalysisView: React.FC = () => {
         <div className="flex items-center gap-3">
           {/* Blast Radius High Warning Banner */}
           <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[#FFB703]/10 border border-[#FFB703]/50 text-[#FFB703] text-[11px] font-semibold tracking-wider uppercase">
-            <span>BLAST RADIUS: HIGH</span>
+            <span>BLAST RADIUS: {state.data ? `${items.length} FILES` : 'UNAVAILABLE'}</span>
           </div>
 
           <button
@@ -152,13 +162,13 @@ export const ImpactAnalysisView: React.FC = () => {
                   </span>
                 </div>
                 <div className="font-mono text-[14px] font-bold text-[#F1F5F9]">
-                  {AST_SIGNAL_PIPELINE.target.file}
+                  {root?.path ?? (selectedFileId ? `File #${selectedFileId}` : 'No file selected')}
                 </div>
                 <div className="font-mono text-[12px] text-[#00F2FE] mt-1">
-                  fn: {AST_SIGNAL_PIPELINE.target.symbol}
+                   {state.loading ? 'Loading impact…' : state.error ? 'Impact unavailable' : 'Selected file root'}
                 </div>
                 <div className="mt-3 pt-2 border-t border-[#1E2638] flex items-center justify-between text-[10px] text-[#94A3B8]">
-                  <span>Fan-In: {AST_SIGNAL_PIPELINE.target.fanIn}</span>
+                   <span>Changed root: {root ? 'yes' : 'no'}</span>
                   <span className="text-[#00F2FE]">1° Ingress Active</span>
                 </div>
               </div>
@@ -172,24 +182,24 @@ export const ImpactAnalysisView: React.FC = () => {
             </div>
 
             <div className="space-y-4">
-              {AST_SIGNAL_PIPELINE.directConsumers.map((consumer, idx) => (
+              {state.loading ? <div className="text-[11px] text-[#94A3B8]">Loading direct consumers…</div> : direct.length ? direct.map((consumer, idx) => (
                 <div
                   key={idx}
                   className="p-3 bg-[#111622] border border-[#1E2638] hover:border-[#00F2FE]/60 transition-colors"
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-mono text-[12px] font-semibold text-[#F1F5F9]">
-                      {consumer.file}
+                       {consumer.path}
                     </span>
                     <span className="px-1.5 py-0.2 bg-[#00F2FE]/15 text-[#00F2FE] text-[9px] uppercase font-bold">
-                      {consumer.tag}
+                       {consumer.evidence[0]?.kind ?? 'dependency'}
                     </span>
                   </div>
                   <div className="text-[11px] text-[#94A3B8]">
-                    {consumer.inboundCalls} Inbound Call{consumer.inboundCalls > 1 ? 's' : ''} • Line {consumer.line}
+                     Depth {consumer.depth} • {consumer.evidence.length} evidence item{consumer.evidence.length === 1 ? '' : 's'}
                   </div>
                 </div>
-              ))}
+              )) : empty}
             </div>
           </div>
 
@@ -200,24 +210,24 @@ export const ImpactAnalysisView: React.FC = () => {
             </div>
 
             <div className="space-y-4">
-              {AST_SIGNAL_PIPELINE.transitiveEgress.map((egress, idx) => (
+              {state.loading ? <div className="text-[11px] text-[#94A3B8]">Loading transitive consumers…</div> : transitive.length ? transitive.map((egress, idx) => (
                 <div
                   key={idx}
                   className="p-3 bg-[#111622] border border-[#1E2638] hover:border-[#9D4EDD]/60 transition-colors"
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-mono text-[12px] font-semibold text-[#F1F5F9]">
-                      {egress.file}
+                       {egress.path}
                     </span>
                     <span className="px-1.5 py-0.2 bg-[#9D4EDD]/15 text-[#9D4EDD] text-[9px] uppercase font-bold">
-                      {egress.tag}
+                       {egress.evidence[0]?.kind ?? 'transitive'}
                     </span>
                   </div>
                   <div className="text-[11px] text-[#94A3B8]">
-                    {egress.callers}
+                     Depth {egress.depth} • {egress.evidence.length} evidence item{egress.evidence.length === 1 ? '' : 's'}
                   </div>
                 </div>
-              ))}
+              )) : empty}
             </div>
           </div>
 
@@ -228,60 +238,7 @@ export const ImpactAnalysisView: React.FC = () => {
             </div>
 
             <div className="space-y-4">
-              {/* Passing test */}
-              <div className="p-3 bg-[#111622] border border-[#06D6A0]/50 hover:border-[#06D6A0] transition-colors">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-mono text-[12px] font-semibold text-[#F1F5F9]">
-                    tokenValidator.test.ts
-                  </span>
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[#06D6A0]" />
-                </div>
-                <div className="text-[11px] text-[#06D6A0]">
-                  12 Test Cases • Statically Linked
-                </div>
-                <div className="text-[10px] text-[#94A3B8] mt-1">
-                  Status: PASSING (Deterministic)
-                </div>
-              </div>
-
-              {/* Untested Hazard (Amber) */}
-              <div
-                className={`p-3 bg-[#111622] border transition-all ${
-                  isTracingActive
-                    ? 'border-[#FFB703] shadow-[0_0_20px_rgba(255,183,3,0.4)] ring-2 ring-[#FFB703]/20'
-                    : 'border-[#FFB703]/50'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-mono text-[12px] font-semibold text-[#F1F5F9]">
-                    userController.test.ts
-                  </span>
-                  <AlertTriangle className="w-3.5 h-3.5 text-[#FFB703]" />
-                </div>
-                <div className="text-[11px] text-[#FFB703] flex items-center gap-1">
-                  <span>⚠</span>
-                  <span>Test Safety Net Missing</span>
-                </div>
-                <div className="text-[10px] text-[#94A3B8] mt-1">
-                  Indirect caller untested
-                </div>
-              </div>
-
-              {/* Uncovered Hotspot (Crimson) */}
-              <div className="p-3 bg-[#111622] border border-[#EF476F]/50 hover:border-[#EF476F] transition-colors">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-mono text-[12px] font-semibold text-[#F1F5F9]">
-                    proxyRoute.ts
-                  </span>
-                  <ShieldAlert className="w-3.5 h-3.5 text-[#EF476F]" />
-                </div>
-                <div className="text-[11px] text-[#EF476F]">
-                  🚨 UNCOVERED HOTSPOT
-                </div>
-                <div className="text-[10px] text-[#94A3B8] mt-1">
-                  Fan-in: 34 • 0 tests mapped
-                </div>
-              </div>
+              {state.error ? <div className="text-[11px] text-[#EF476F]">{state.error}</div> : empty}
             </div>
           </div>
         </div>
@@ -292,35 +249,35 @@ export const ImpactAnalysisView: React.FC = () => {
         <div className="flex items-center gap-4 text-[#94A3B8]">
           <div>
             Total Blast Scope:{' '}
-            <span className="text-[#00F2FE] font-bold">14 Files</span>
+             <span className="text-[#00F2FE] font-bold">{count('total', items.length)} Files</span>
           </div>
           <span className="text-[#475569]">|</span>
           <div>
-            Direct: <span className="text-[#DEE2F3]">3</span>
+             Direct: <span className="text-[#DEE2F3]">{count('direct', direct.length)}</span>
           </div>
           <span className="text-[#475569]">|</span>
           <div>
-            Transitive: <span className="text-[#DEE2F3]">8</span>
+             Transitive: <span className="text-[#DEE2F3]">{count('transitive', transitive.length)}</span>
           </div>
           <span className="text-[#475569]">|</span>
           <div>
-            Test Suites Mapped: <span className="text-[#06D6A0]">2</span>
+             Test Suites Mapped: <span className="text-[#06D6A0]">{count('tests', 0)}</span>
           </div>
           <span className="text-[#475569]">|</span>
           <div>
             Uncovered Hotspots:{' '}
-            <span className="text-[#EF476F] font-bold">1 File</span>
+             <span className="text-[#EF476F] font-bold">{count('hazards', 0)} Files</span>
           </div>
         </div>
 
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5 text-[10px] text-[#06D6A0]">
-            <span>Engine: v2.4.1 (Ready)</span>
+            <span>API snapshot: {state.data?.snapshot_id ?? '—'}</span>
             <span className="w-1.5 h-1.5 rounded-full bg-[#06D6A0]" />
           </div>
 
-          <Button variant="primary" size="sm">
-            Run Test Suite
+          <Button variant="primary" size="sm" disabled>
+            Test relationships are API-scoped
           </Button>
         </div>
       </div>
