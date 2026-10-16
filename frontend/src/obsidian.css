@@ -1,0 +1,174 @@
+/* Obsidian Telemetry visual foundation.
+ * Load after styles.css so the existing layout and component class contract stay intact.
+ */
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root {
+  --obsidian-void: #080c14;
+  --obsidian-shell: #0d121d;
+  --obsidian-panel: #131b2b;
+  --obsidian-raised: #1a243a;
+  --obsidian-border: #182236;
+  --obsidian-border-strong: #212f48;
+  --obsidian-border-focus: #34486d;
+  --obsidian-cyan: #00f2fe;
+  --obsidian-violet: #9d4edd;
+  --obsidian-amber: #ffb703;
+  --obsidian-mint: #06d6a0;
+  --obsidian-rose: #ef476f;
+  --obsidian-ink: #edf4ff;
+  --obsidian-muted: #91a0b7;
+  --obsidian-quiet: #61718a;
+  --obsidian-mono: 'DM Mono', ui-monospace, monospace;
+  --obsidian-sans: 'Space Grotesk', system-ui, sans-serif;
+  --obsidian-radius: 8px;
+}
+
+html,
+body {
+  background: var(--obsidian-void);
+  color: var(--obsidian-ink);
+  font-family: var(--obsidian-sans);
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--obsidian-cyan);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--obsidian-cyan) 16%, transparent);
+}
+
+.app-shell { background: var(--obsidian-void); }
+.sidebar,
+.topbar { background: var(--obsidian-shell); border-color: var(--obsidian-border); }
+.sidebar { box-shadow: 18px 0 50px rgb(0 0 0 / 28%); }
+.brand-mark,
+.repo-symbol,
+.avatar,
+.cockpit-empty-icon { background: var(--obsidian-panel); border-color: var(--obsidian-cyan); color: var(--obsidian-cyan); }
+.brand small,
+.crumb,
+.metric-top,
+.tree-search,
+.file-toolbar,
+.table-head,
+.inspector-kicker { color: var(--obsidian-quiet); }
+.brand strong,
+.page-header h1,
+.metric strong,
+.file-row strong,
+.app-dialog h2,
+.cockpit-empty strong { color: var(--obsidian-ink); }
+
+.repo-switcher,
+.command-trigger,
+.button,
+.metric,
+.panel,
+.card,
+.graph-toolbar,
+.graph-workspace,
+.results-panel,
+.impact-results,
+.file-tree-panel,
+.file-list-panel,
+.git-status-panel,
+.code-panel {
+  background: var(--obsidian-panel);
+  border-color: var(--obsidian-border-strong);
+}
+
+.icon-button:hover,
+.command-trigger:hover,
+.button:hover:not(:disabled),
+.tree-root > button:hover,
+.tree-row:hover,
+.tree-row.selected,
+.file-row:hover,
+.result-row:hover,
+.impact-row:hover,
+.hotspot-table-row:hover,
+.test-row:hover,
+.intelligence-links button:hover,
+.fast-path:hover {
+  background: var(--obsidian-raised);
+  border-color: var(--obsidian-border-focus);
+  color: var(--obsidian-cyan);
+}
+
+.button-primary,
+.button.primary,
+.button.cyan { background: var(--obsidian-cyan); border-color: var(--obsidian-cyan); color: var(--obsidian-void); }
+.button-primary:hover:not(:disabled),
+.button.primary:hover:not(:disabled),
+.button.cyan:hover:not(:disabled) { background: #72f8ff; color: var(--obsidian-void); }
+.button-danger { background: var(--obsidian-rose); border-color: var(--obsidian-rose); color: var(--obsidian-void); }
+.button-danger:hover:not(:disabled) { background: #ff6f91; color: var(--obsidian-void); }
+.button-quiet { background: var(--obsidian-panel); border-color: var(--obsidian-border); color: var(--obsidian-muted); }
+.eyebrow,
+.page-context,
+.dialog-context,
+.crumb-repo svg,
+.command-trigger svg,
+.search-input.large svg,
+.next-step span { color: var(--obsidian-cyan); }
+.metric.cyan:after { background: var(--obsidian-cyan); }
+.metric.violet:after { background: var(--obsidian-violet); }
+.metric.amber:after { background: var(--obsidian-amber); }
+.metric.green:after { background: var(--obsidian-mint); }
+.metric.red:after { background: var(--obsidian-rose); }
+.metric.cyan strong { color: var(--obsidian-cyan); }
+.metric.violet strong { color: var(--obsidian-violet); }
+.metric.amber strong,
+.folder-icon,
+.relation-count,
+.hot-number { color: var(--obsidian-amber); }
+.metric.green strong { color: var(--obsidian-mint); }
+.metric.red strong { color: var(--obsidian-rose); }
+
+.repo-banner,
+.cockpit-identity,
+.onboarding-inspection { background: color-mix(in srgb, var(--obsidian-cyan) 9%, var(--obsidian-panel)); border-color: var(--obsidian-border-focus); }
+.repo-banner-icon,
+.identity-mark { background: color-mix(in srgb, var(--obsidian-cyan) 18%, var(--obsidian-panel)); color: var(--obsidian-cyan); }
+.flow-node { background: var(--obsidian-raised); border-color: var(--obsidian-border-focus); }
+.flow-node small,
+.result-main small,
+.file-row small,
+.impact-row small,
+.test-row span { color: var(--obsidian-muted); }
+
+.graph-canvas .react-flow { background-color: var(--obsidian-void); background-image: radial-gradient(var(--obsidian-border-focus) 1px, transparent 1px); }
+.graph-canvas .react-flow__controls button,
+.graph-canvas .react-flow__minimap { background: var(--obsidian-panel); border-color: var(--obsidian-border-strong); }
+.graph-canvas .react-flow__edge-path { stroke: var(--obsidian-cyan); }
+.graph-canvas .react-flow__edge-text { fill: var(--obsidian-muted); }
+.graph-inspector { background: var(--obsidian-panel); border-color: var(--obsidian-border-strong); }
+.result-type { background: color-mix(in srgb, var(--obsidian-cyan) 16%, var(--obsidian-panel)); color: var(--obsidian-cyan); }
+
+.modal-backdrop { background: rgb(4 7 13 / 82%); }
+.command-palette,
+.app-dialog { background: var(--obsidian-panel); border-color: var(--obsidian-border-focus); box-shadow: 0 24px 70px rgb(0 0 0 / 65%); }
+.palette-row:hover,
+.palette-row.selected,
+.onboarding-mode:hover,
+.onboarding-mode.selected { background: var(--obsidian-raised); color: var(--obsidian-cyan); border-color: var(--obsidian-cyan); }
+.onboarding-mode { background: var(--obsidian-shell); border-color: var(--obsidian-border-strong); color: var(--obsidian-muted); }
+.dialog-error { background: color-mix(in srgb, var(--obsidian-rose) 15%, var(--obsidian-panel)); border-color: var(--obsidian-rose); color: var(--obsidian-rose); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
