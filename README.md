@@ -147,18 +147,18 @@ depends on it in the supported slim base.
 ```bash
 docker build -t repopilot:local .
 docker volume create repopilot-data
-docker run --name repopilot-local -p 3000:3000 \
+docker run --name repopilot-current -p 3105:3000 \
   -v repopilot-data:/app/data \
   -v "$PWD:/workspace:ro" \
   repopilot:local
 ```
 
-The container serves the UI and API at `http://127.0.0.1:3000`. Check it with:
+The container serves the UI and API at `http://127.0.0.1:3105` (host `3105` mapped to the application port `3000`). Check it with:
 
 ```bash
-curl http://127.0.0.1:3000/api/v1/health
+curl http://127.0.0.1:3105/api/v1/health
 docker ps
-docker logs repopilot-local
+docker logs repopilot-current
 ```
 
 For the security verification requested for the release image, run:
@@ -191,7 +191,7 @@ Register `/workspace` through the onboarding UI or API to scan the mounted
 repository. Stop the disposable container with:
 
 ```bash
-docker rm -f repopilot-local
+docker rm -f repopilot-current
 ```
 
 ## CLI
