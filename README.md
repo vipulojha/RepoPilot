@@ -160,6 +160,16 @@ are left visible for manual recovery.
 
 ## Milestones 5E and 5F
 
+## Intelligent onboarding
+
+The Add flow separates the persistent repository from the current analysis
+scope and focused file. It can inspect local folder/file paths, detect a parent
+Git root, reuse an existing registration, initialize Git only when explicitly
+selected, and clone HTTPS GitHub repositories into a non-empty-safe destination.
+Repository removal only removes RepoPilot tracking; it never deletes project
+files. Standalone files are detected honestly, but the current repository
+workspace does not yet provide a separate standalone-file viewer.
+
 Advanced Git support adds confirmed stash create/list/apply/pop/drop operations
 through the same Git action API. Merge, cherry-pick, reset, rebase, stash
 automation, and force-push remain deferred.

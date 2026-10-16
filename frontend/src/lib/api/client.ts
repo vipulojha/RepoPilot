@@ -20,6 +20,7 @@ export interface RepositoryRegistration {
   path: string
   branch?: string
 }
+export interface OnboardingInspection { path:string; exists:boolean; kind:'folder'|'file'; canonical_path:string|null; repository_root:string|null; repository_name:string|null; branch:string|null; is_git_repository:boolean; is_project:boolean; is_empty:boolean; is_registered:boolean; repository_id:number|null; supported_file:boolean|null; standalone_supported:boolean; message:string|null }
 
 export interface Scan {
   id: number
@@ -112,6 +113,9 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(payload),
   }),
+  inspectPath: (payload:{kind:'folder'|'file';path:string}) => request<OnboardingInspection>('/repositories/inspect', { method:'POST', body:JSON.stringify(payload) }),
+  onboardRepository: (payload:{path:string;name?:string;initialize_git?:boolean}) => request<Repository>('/repositories/onboard', { method:'POST', body:JSON.stringify(payload) }),
+  cloneRepository: (payload:{url:string;destination:string}) => request<{repository:Repository;cloned_path:string}>('/repositories/clone', { method:'POST', body:JSON.stringify(payload) }),
   deleteRepository: (repositoryId:number) => request<void>(`/repositories/${repositoryId}`, { method:'DELETE' }),
   scans: (repositoryId: number) => request<Scan[]>(`/repositories/${repositoryId}/scans`),
   latestScan: (repositoryId: number) => request<Scan>(`/repositories/${repositoryId}/scans/latest`),
