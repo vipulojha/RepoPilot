@@ -130,6 +130,15 @@ non-root user. The initial image build needs network access to download base
 images and packages; the runtime uses the frozen environment from the image and
 does not re-sync dependencies on startup.
 
+The runtime image intentionally keeps Debian's `git` package because repository
+onboarding, Git status, history, compare, and Git actions invoke the `git`
+executable. It does not keep `uv`, pip, compilers, headers, or Python build
+dependencies. The current Debian security repository supplies the fixed expat
+package (`libexpat1` 2.9.0-1~deb13u1). Docker Scout currently reports zlib with
+no available fixed release; RepoPilot does not expose archive/decompression
+processing, so the runtime keeps only the Python/SQLite zlib dependency. Debian's
+tar package is retained because dpkg depends on it in the supported slim base.
+
 ```bash
 docker build -t repopilot:local .
 docker volume create repopilot-data
