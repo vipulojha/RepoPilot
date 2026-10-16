@@ -1,7 +1,5 @@
 # RepoPilot
 
-[![Watch the RepoPilot product film](./film/poster.png)](https://cdn.jsdelivr.net/gh/vipulojha/RepoPilot@main/RepoPilot_product_film_visualiza%E2%80%A6_1080p_20261016191317.mp4)
-
 RepoPilot is a local-first repository intelligence workbench. It scans a codebase
 without executing its source, builds a snapshot of files, symbols, imports, and
 static test relationships, and exposes that information through a FastAPI API,
@@ -11,6 +9,18 @@ The frontend uses the Stitch handoff in
 `repopilot-design-system-&-handoff-suite/` as its visual reference. That folder
 contains reference tokens, screen specifications, and prototype components; the
 production application is in `frontend/` and `backend/`.
+
+## Product Demo
+
+<p align="center">
+  <a href="https://cdn.jsdelivr.net/gh/vipulojha/RepoPilot@main/RepoPilot_product_film_visualiza%E2%80%A6_1080p_20261016191317.mp4">
+    <img src="./docs/assets/repopilot-demo.gif" alt="RepoPilot cinematic product demo" width="100%" />
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://cdn.jsdelivr.net/gh/vipulojha/RepoPilot@main/RepoPilot_product_film_visualiza%E2%80%A6_1080p_20261016191317.mp4">▶ Watch the full RepoPilot demo</a>
+</p>
 
 ## Features
 
