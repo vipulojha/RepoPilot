@@ -3,6 +3,7 @@ import { Activity, AlertTriangle, ArrowLeft, ArrowRight, Boxes, Check, CheckCirc
 import { Background, Controls, Handle, MiniMap, Position, ReactFlow, ReactFlowProvider, useReactFlow, type Edge, type Node, type NodeProps } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { api, type GraphNode, type Repository, type TestRelationship } from './lib/api/client'
+import AtlasPageView from './AtlasPage'
 import { useHandoffData, type HandoffData, type HandoffEndpoint } from './lib/handoffData'
 import { impactRequestReducer } from './lib/impactState'
 import { KitBadge, KitButton, KitEmpty, KitMetric, KitPageHeader, KitPanel, KitSearchInput, KitTreeRow } from './kit/KitPrimitives'
@@ -106,22 +107,22 @@ function KitTopbar({ repository, readiness, onNavigate, onOpenPalette, onRescan 
 
 function KitRoute({ route, repositoryId, readiness, state, fileId, preferences, onPreferencesChange, onRefresh, onNavigate, onOpenFile, onBack }: { route: Route; repositoryId: number | null; readiness: 'no-repository' | 'loading' | 'ready' | 'unavailable'; state: ReturnType<typeof useHandoffData>; fileId: number | null; preferences: Preferences; onPreferencesChange: (preferences: Preferences) => void; onRefresh: () => void; onNavigate: (route: Route, fileId?: number | null) => void; onOpenFile: (fileId: number) => void; onBack: () => void }) {
   if (state.loading && route !== 'settings' && route !== 'help') return <KitEmpty title="Loading repository intelligence" detail="Fetching the current snapshot from the RepoPilot API." />
-  if (state.error && route !== 'settings' && route !== 'help') return <KitEmpty title="Unable to load repository intelligence" detail={state.error} />
+  if (state.error && route !== 'settings' && route !== 'help' && route !== 'atlas') return <KitEmpty title="Unable to load repository intelligence" detail={state.error} />
   if (route === 'settings') return <SettingsPage readiness={readiness} preferences={preferences} onChange={onPreferencesChange} />
   if (route === 'help') return <HelpPage />
   if (!repositoryId || !state.data) return <KitEmpty title="Connect a repository to begin" detail="Use Connect Repository to create a real indexed workspace." />
   const data = state.data
   if (data.scan?.status === 'failed') return <KitEmpty title="Repository analysis unavailable" detail={data.scan.error_message || 'The latest repository scan failed.'} />
-  const routeEndpoint: Partial<Record<Route, HandoffEndpoint>> = { overview: 'overview', files: 'files', graph: 'graph', atlas: 'graph', hotspots: 'hotspots', tests: 'changes', history: 'history', changes: 'changes' }
+  const routeEndpoint: Partial<Record<Route, HandoffEndpoint>> = { overview: 'overview', files: 'files', graph: 'graph', atlas: 'atlas', hotspots: 'hotspots', tests: 'changes', history: 'history', changes: 'changes' }
   const endpoint = routeEndpoint[route]
-  if (endpoint && data.endpointErrors[endpoint]) return <KitEmpty title={`${routeLabels[route]} unavailable`} detail={data.endpointErrors[endpoint]} />
+  if (endpoint && data.endpointErrors[endpoint] && route !== 'atlas') return <KitEmpty title={`${routeLabels[route]} unavailable`} detail={data.endpointErrors[endpoint]} />
   switch (route) {
     case 'overview': return <OverviewPage data={data} onNavigate={onNavigate} />
     case 'files': return <FilesPage data={data} selectedFileId={fileId} onOpenFile={onOpenFile} onRefresh={onRefresh} />
     case 'file': return <FilePage repositoryId={repositoryId} fileId={fileId} onBack={onBack} onOpenFile={onOpenFile} onNavigate={onNavigate} />
     case 'search': return <SearchPage repositoryId={repositoryId} onOpenFile={onOpenFile} />
     case 'graph': return <GraphPage data={data} onOpenFile={onOpenFile} onNavigate={onNavigate} title="Dependency Graph" />
-    case 'atlas': return <GraphPage data={data} onOpenFile={onOpenFile} onNavigate={onNavigate} title="Dependency Atlas" atlas />
+    case 'atlas': return <AtlasPageView data={data} atlasError={state.error ?? data.endpointErrors.atlas ?? null} onOpenFile={onOpenFile} onNavigate={(nextRoute, nextFileId) => onNavigate(nextRoute, nextFileId)} />
     case 'impact': return <ImpactPage repositoryId={repositoryId} fileId={fileId} data={data} onOpenFile={onOpenFile} onNavigate={onNavigate} />
     case 'hotspots': return <HotspotsPage data={data} onOpenFile={onOpenFile} onNavigate={onNavigate} />
     case 'tests': return <TestsPage repositoryId={repositoryId} fileId={fileId} data={data} onOpenFile={onOpenFile} />

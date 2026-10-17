@@ -67,6 +67,11 @@ export interface GraphEdge { id: number; source: number; target: number; kind: s
 export interface Hotspot { file_id:number; path:string; name:string; language:string; is_test:boolean; score:number; rank:number; metrics:{lines:number;symbols:number;fan_in:number;fan_out:number;impact_reach:number}; reasons:string[] }
 export interface TestRelationship { test_file_id:number; test_path:string; source_file_id:number; source_path:string; kind:string; evidence_level:string; evidence:string }
 export interface Overview { snapshot_id:number; file_count:number; total_lines:number; total_bytes:number; symbol_count:number; dependency_count:number; test_file_count:number; language_counts:Record<string,number>; warning_count:number; hotspot_count:number }
+export interface AtlasFile { file_id:number; path:string; name:string; symbol_count:number; inbound_dependencies:number; outbound_dependencies:number; is_test:boolean; hotspot_score:number }
+export interface AtlasModule { id:string; region_id:string; label:string; path:string; file_count:number; symbol_count:number; inbound_dependencies:number; outbound_dependencies:number; languages:string[]; test_files:number; hotspots:number; hotspot_score:number; files:AtlasFile[] }
+export interface AtlasRegion { id:string; label:string; path:string; file_count:number; symbol_count:number; inbound_dependencies:number; outbound_dependencies:number; languages:string[]; test_files:number; hotspots:number; module_ids:string[] }
+export interface AtlasEdge { id:string; source:string; target:string; dependency_count:number; test_count:number; hotspot:number; weight:number }
+export interface Atlas { snapshot_id:number; metrics:{ regions:number; modules:number; files:number; dependencies:number; hotspots:number; test_relationships:number }; regions:AtlasRegion[]; modules:AtlasModule[]; edges:AtlasEdge[] }
 
 export interface GitStatusHead { sha: string; short_sha: string; message: string; author: string; committed_at: string | null }
 export interface GitStatusUpstream { name: string; ahead: number; behind: number }
@@ -139,6 +144,7 @@ export const api = {
   sourceTests: (repositoryId:number,fileId:number) => request<{snapshot_id:number;items:TestRelationship[]}>(`/repositories/${repositoryId}/files/${fileId}/tests`),
   testSources: (repositoryId:number,fileId:number) => request<{snapshot_id:number;items:TestRelationship[]}>(`/repositories/${repositoryId}/files/${fileId}/tested-sources`),
   overview: (repositoryId:number) => request<Overview>(`/repositories/${repositoryId}/overview`),
+  atlas: (repositoryId:number) => request<Atlas>(`/repositories/${repositoryId}/atlas`),
   gitStatus: (repositoryId:number) => request<GitStatus>(`/repositories/${repositoryId}/git/status`),
   git: {
     history: (repositoryId:number, page=1, limit=20) => request<GitHistory>(`/repositories/${repositoryId}/git/history?page=${page}&limit=${limit}`),

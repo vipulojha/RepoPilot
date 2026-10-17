@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { api, type GitHistory, type GraphNode, type GraphEdge, type Hotspot, type Overview, type RepositoryFile, type SearchHit, type TestRelationship, type GitStatus, type GitChangedFile, type ImpactItem, type Scan } from './api/client'
+import { api, type Atlas, type GitHistory, type GraphNode, type GraphEdge, type Hotspot, type Overview, type RepositoryFile, type SearchHit, type TestRelationship, type GitStatus, type GitChangedFile, type ImpactItem, type Scan } from './api/client'
 
-export type HandoffEndpoint = 'scan' | 'overview' | 'files' | 'graph' | 'hotspots' | 'changes' | 'history' | 'git'
+export type HandoffEndpoint = 'scan' | 'overview' | 'files' | 'graph' | 'atlas' | 'hotspots' | 'changes' | 'history' | 'git'
 export type HandoffStatus = 'ready' | 'empty' | 'partial' | 'unavailable'
 export type HandoffEndpointErrors = Partial<Record<HandoffEndpoint, string>>
 
@@ -17,6 +17,7 @@ async function settle<T>(promise: Promise<T>): Promise<Settled<T>> {
 
 export interface HandoffData {
   overview: Overview | null
+  atlas: Atlas | null
   files: RepositoryFile[]
   search: SearchHit[]
   graph: { nodes: GraphNode[]; edges: GraphEdge[] }
@@ -34,11 +35,13 @@ export interface HandoffData {
   source: 'api'
 }
 export async function loadHandoffData(repositoryId: number) {
-  const [scan, overview, files, graph, hotspots, changes, history, git] = await Promise.all([
+  const atlasRequest = typeof api.atlas === 'function' ? settle(api.atlas(repositoryId)) : Promise.resolve<Settled<Atlas>>({ value: null, error: null })
+  const [scan, overview, files, graph, atlas, hotspots, changes, history, git] = await Promise.all([
     settle(api.latestScan(repositoryId)),
     settle(api.overview(repositoryId)),
     settle(api.files(repositoryId)),
     settle(api.graph(repositoryId)),
+    atlasRequest,
     settle(api.hotspots(repositoryId)),
     settle(api.changes(repositoryId)),
     settle(api.git.history(repositoryId, 1, 20)),
@@ -46,11 +49,12 @@ export async function loadHandoffData(repositoryId: number) {
   ])
   const results: [HandoffEndpoint, Settled<unknown>][] = [
     ['scan', scan], ['overview', overview], ['files', files], ['graph', graph],
-    ['hotspots', hotspots], ['changes', changes], ['history', history], ['git', git],
+    ...(typeof api.atlas === 'function' ? [['atlas', atlas] as [HandoffEndpoint, Settled<unknown>]] : []), ['hotspots', hotspots], ['changes', changes], ['history', history], ['git', git],
   ]
   const endpointErrors = Object.fromEntries(results.filter(([, result]) => result.error).map(([endpoint, result]) => [endpoint, result.error])) as HandoffEndpointErrors
   const values = {
-    overview: overview.value,
+      overview: overview.value,
+      atlas: atlas.value,
     files: files.value ?? { items: [] as RepositoryFile[] },
     graph: graph.value ?? { nodes: [] as GraphNode[], edges: [] as GraphEdge[] },
     hotspots: hotspots.value ?? { items: [] as Hotspot[] },
@@ -71,6 +75,7 @@ export async function loadHandoffData(repositoryId: number) {
     error: status === 'unavailable' ? Object.values(endpointErrors)[0] ?? 'Repository intelligence is unavailable.' : null,
     data: {
       overview: values.overview,
+      atlas: values.atlas,
       files: values.files.items,
       search: [],
       graph: values.graph,
