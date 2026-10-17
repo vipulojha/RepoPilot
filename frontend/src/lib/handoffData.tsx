@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, type Atlas, type GitHistory, type GraphNode, type GraphEdge, type Hotspot, type Overview, type RepositoryFile, type SearchHit, type TestRelationship, type GitStatus, type GitChangedFile, type ImpactItem, type Scan } from './api/client'
 
-export type HandoffEndpoint = 'scan' | 'overview' | 'files' | 'graph' | 'atlas' | 'hotspots' | 'changes' | 'history' | 'git'
+export type HandoffEndpoint = 'scan' | 'overview' | 'files' | 'search' | 'graph' | 'atlas' | 'hotspots' | 'changes' | 'history' | 'git'
 export type HandoffStatus = 'ready' | 'empty' | 'partial' | 'unavailable'
 export type HandoffEndpointErrors = Partial<Record<HandoffEndpoint, string>>
 
@@ -34,12 +34,16 @@ export interface HandoffData {
   status: HandoffStatus
   source: 'api'
 }
-export async function loadHandoffData(repositoryId: number) {
+export async function loadHandoffData(repositoryId: number, searchQuery = '') {
   const atlasRequest = typeof api.atlas === 'function' ? settle(api.atlas(repositoryId)) : Promise.resolve<Settled<Atlas>>({ value: null, error: null })
-  const [scan, overview, files, graph, atlas, hotspots, changes, history, git] = await Promise.all([
+  // Search only when a caller supplies a query; repository opening must not trigger
+  // an unbounded search request.
+  const searchRequest = searchQuery.trim() ? settle(api.search(repositoryId, searchQuery.trim())) : Promise.resolve<Settled<{ items: SearchHit[] }>>({ value: null, error: null })
+  const [scan, overview, files, search, graph, atlas, hotspots, changes, history, git] = await Promise.all([
     settle(api.latestScan(repositoryId)),
     settle(api.overview(repositoryId)),
     settle(api.files(repositoryId)),
+    searchRequest,
     settle(api.graph(repositoryId)),
     atlasRequest,
     settle(api.hotspots(repositoryId)),
@@ -48,7 +52,7 @@ export async function loadHandoffData(repositoryId: number) {
     settle(api.gitStatus(repositoryId)),
   ])
   const results: [HandoffEndpoint, Settled<unknown>][] = [
-    ['scan', scan], ['overview', overview], ['files', files], ['graph', graph],
+    ['scan', scan], ['overview', overview], ['files', files], ...(searchQuery.trim() ? [['search', search] as [HandoffEndpoint, Settled<unknown>]] : []), ['graph', graph],
     ...(typeof api.atlas === 'function' ? [['atlas', atlas] as [HandoffEndpoint, Settled<unknown>]] : []), ['hotspots', hotspots], ['changes', changes], ['history', history], ['git', git],
   ]
   const endpointErrors = Object.fromEntries(results.filter(([, result]) => result.error).map(([endpoint, result]) => [endpoint, result.error])) as HandoffEndpointErrors
@@ -63,7 +67,7 @@ export async function loadHandoffData(repositoryId: number) {
     git: git.value,
   }
   const successful = results.filter(([, result]) => !result.error).length
-  const hasData = Boolean((values.overview?.file_count ?? 0) > 0 || values.files.items.length || values.graph.nodes.length || values.hotspots.items.length || values.changes.tests.length || values.history?.items.length)
+  const hasData = Boolean((values.overview?.file_count ?? 0) > 0 || values.files.items.length || search.value?.items.length || values.graph.nodes.length || values.hotspots.items.length || values.changes.tests.length || values.history?.items.length)
   const status: HandoffStatus = Object.keys(endpointErrors).length ? (successful ? 'partial' : 'unavailable') : (hasData ? 'ready' : 'empty')
   const changedFiles: GitChangedFile[] = (values.changes.changed_files ?? []).map(file => {
     const item = file as unknown as Record<string, unknown>
@@ -77,7 +81,7 @@ export async function loadHandoffData(repositoryId: number) {
       overview: values.overview,
       atlas: values.atlas,
       files: values.files.items,
-      search: [],
+      search: search.value?.items ?? [],
       graph: values.graph,
       hotspots: values.hotspots.items,
       tests: values.changes.tests,

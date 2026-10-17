@@ -3,7 +3,7 @@ import { api } from './api/client'
 import { loadHandoffData } from './handoffData'
 
 vi.mock('./api/client', () => ({ api: {
-  latestScan: vi.fn(), overview: vi.fn(), files: vi.fn(), graph: vi.fn(), hotspots: vi.fn(), changes: vi.fn(),
+  latestScan: vi.fn(), overview: vi.fn(), files: vi.fn(), search: vi.fn(), graph: vi.fn(), hotspots: vi.fn(), changes: vi.fn(),
   git: { history: vi.fn() }, gitStatus: vi.fn(),
 } }))
 
@@ -14,6 +14,7 @@ function configureSuccesses() {
   vi.mocked(api.latestScan).mockResolvedValue(scan)
   vi.mocked(api.overview).mockResolvedValue(overview)
   vi.mocked(api.files).mockResolvedValue({ snapshot_id: 1, items: [], next_cursor: null, has_more: false })
+  vi.mocked(api.search).mockResolvedValue({ snapshot_id: 1, items: [], next_cursor: null, has_more: false })
   vi.mocked(api.graph).mockResolvedValue({ snapshot_id: 1, root_file_id: 0, nodes: [], edges: [], node_count: 0, edge_count: 0, truncated: false, direction: 'both', depth: 2 })
   vi.mocked(api.hotspots).mockResolvedValue({ snapshot_id: 1, items: [], next_cursor: null, has_more: false, total: 0 })
   vi.mocked(api.changes).mockResolvedValue({ state: 'ready', repository_id: 7, snapshot_id: 1, git: null, diff: null, changed_files: [], affected_files: [], hotspots: [], tests: [], risk: null, truncated: false } as never)
@@ -35,6 +36,27 @@ describe('loadHandoffData', () => {
     vi.mocked(api.overview).mockRejectedValue(new Error('overview unavailable'))
     const result = await loadHandoffData(7)
     expect(result.data.endpointErrors.overview).toBe('overview unavailable')
+    expect(result.data.status).toBe('partial')
+  })
+
+  it('does not search when opening a repository without a query', async () => {
+    await loadHandoffData(7)
+    expect(api.search).not.toHaveBeenCalled()
+  })
+
+  it('loads caller-requested search results into the shared model', async () => {
+    const hit = { file_id: 3, symbol_id: null, entity_type: 'file', type: 'file', path: 'src/main.ts', name: 'main.ts', language: 'TypeScript', line: 1, snippet: 'main', score: 1, rank: 1 }
+    vi.mocked(api.search).mockResolvedValue({ snapshot_id: 1, items: [hit], next_cursor: null, has_more: false })
+    const result = await loadHandoffData(7, 'main.ts')
+    expect(api.search).toHaveBeenCalledWith(7, 'main.ts')
+    expect(result.data.search).toEqual([hit])
+  })
+
+  it('preserves a search failure as a partial endpoint error', async () => {
+    vi.mocked(api.search).mockRejectedValue(new Error('search unavailable'))
+    const result = await loadHandoffData(7, 'needle')
+    expect(result.data.endpointErrors.search).toBe('search unavailable')
+    expect(result.data.search).toEqual([])
     expect(result.data.status).toBe('partial')
   })
 
@@ -67,6 +89,7 @@ describe('loadHandoffData', () => {
     vi.mocked(api.latestScan).mockRejectedValue(new Error('repository unavailable'))
     vi.mocked(api.overview).mockRejectedValue(new Error('repository unavailable'))
     vi.mocked(api.files).mockRejectedValue(new Error('repository unavailable'))
+    vi.mocked(api.search).mockRejectedValue(new Error('repository unavailable'))
     vi.mocked(api.graph).mockRejectedValue(new Error('repository unavailable'))
     vi.mocked(api.hotspots).mockRejectedValue(new Error('repository unavailable'))
     vi.mocked(api.changes).mockRejectedValue(new Error('repository unavailable'))
