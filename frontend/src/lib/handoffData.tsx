@@ -1,5 +1,19 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { api, type GitHistory, type GraphNode, type GraphEdge, type Hotspot, type Overview, type RepositoryFile, type SearchHit, type TestRelationship, type GitStatus, type GitChangedFile, type ImpactItem } from './api/client'
+import { api, type GitHistory, type GraphNode, type GraphEdge, type Hotspot, type Overview, type RepositoryFile, type SearchHit, type TestRelationship, type GitStatus, type GitChangedFile, type ImpactItem, type Scan } from './api/client'
+
+export type HandoffEndpoint = 'scan' | 'overview' | 'files' | 'graph' | 'hotspots' | 'changes' | 'history' | 'git'
+export type HandoffStatus = 'ready' | 'empty' | 'partial' | 'unavailable'
+export type HandoffEndpointErrors = Partial<Record<HandoffEndpoint, string>>
+
+type Settled<T> = { value: T | null; error: string | null }
+
+function errorMessage(error: unknown) {
+  return error instanceof Error && error.message ? error.message : 'RepoPilot could not load this data.'
+}
+
+async function settle<T>(promise: Promise<T>): Promise<Settled<T>> {
+  try { return { value: await promise, error: null } } catch (error) { return { value: null, error: errorMessage(error) } }
+}
 
 export interface HandoffData {
   overview: Overview | null
@@ -14,33 +28,80 @@ export interface HandoffData {
   affectedFiles: ImpactItem[]
   changeStats: { files: number; additions: number; deletions: number } | null
   changeRisk: { score: number; level: string; reasons: string[] } | null
-  source: 'api' | 'fallback'
+  scan: Scan | null
+  endpointErrors: HandoffEndpointErrors
+  status: HandoffStatus
+  source: 'api'
 }
 export const HandoffDataContext = createContext<HandoffData | null>(null)
 export const useHandoffDataContext = () => useContext(HandoffDataContext)
 
-export function useHandoffData(repositoryId: number | null) {
+export async function loadHandoffData(repositoryId: number) {
+  const [scan, overview, files, graph, hotspots, changes, history, git] = await Promise.all([
+    settle(api.latestScan(repositoryId)),
+    settle(api.overview(repositoryId)),
+    settle(api.files(repositoryId)),
+    settle(api.graph(repositoryId)),
+    settle(api.hotspots(repositoryId)),
+    settle(api.changes(repositoryId)),
+    settle(api.git.history(repositoryId, 1, 20)),
+    settle(api.gitStatus(repositoryId)),
+  ])
+  const results: [HandoffEndpoint, Settled<unknown>][] = [
+    ['scan', scan], ['overview', overview], ['files', files], ['graph', graph],
+    ['hotspots', hotspots], ['changes', changes], ['history', history], ['git', git],
+  ]
+  const endpointErrors = Object.fromEntries(results.filter(([, result]) => result.error).map(([endpoint, result]) => [endpoint, result.error])) as HandoffEndpointErrors
+  const values = {
+    overview: overview.value,
+    files: files.value ?? { items: [] as RepositoryFile[] },
+    graph: graph.value ?? { nodes: [] as GraphNode[], edges: [] as GraphEdge[] },
+    hotspots: hotspots.value ?? { items: [] as Hotspot[] },
+    changes: changes.value ?? { changed_files: [], tests: [] as TestRelationship[], affected_files: [], diff: null, risk: null },
+    history: history.value,
+    git: git.value,
+  }
+  const successful = results.filter(([, result]) => !result.error).length
+  const hasData = Boolean((values.overview?.file_count ?? 0) > 0 || values.files.items.length || values.graph.nodes.length || values.hotspots.items.length || values.changes.tests.length || values.history?.items.length)
+  const status: HandoffStatus = Object.keys(endpointErrors).length ? (successful ? 'partial' : 'unavailable') : (hasData ? 'ready' : 'empty')
+  const changedFiles: GitChangedFile[] = (values.changes.changed_files ?? []).map(file => {
+    const item = file as unknown as Record<string, unknown>
+    const gitData = (item.git ?? item) as Record<string, unknown>
+    return { path: String(gitData.path ?? item.path ?? ''), old_path: (gitData.rename_from as string | null) ?? (item.old_path as string | null) ?? null, status: String(gitData.status ?? item.status ?? ''), additions: Number(gitData.additions ?? item.additions ?? 0), deletions: Number(gitData.deletions ?? item.deletions ?? 0), file_id: (item.file_id as number | null) ?? null, unresolved: Boolean(item.unresolved), diff_lines: Array.isArray(item.diff_lines) ? item.diff_lines as GitChangedFile['diff_lines'] : [] }
+  })
+  return {
+    loading: false,
+    error: status === 'unavailable' ? Object.values(endpointErrors)[0] ?? 'Repository intelligence is unavailable.' : null,
+    data: {
+      overview: values.overview,
+      files: values.files.items,
+      search: [],
+      graph: values.graph,
+      hotspots: values.hotspots.items,
+      tests: values.changes.tests,
+      history: values.history,
+      git: values.git,
+      changedFiles,
+      affectedFiles: values.changes.affected_files ?? [],
+      changeStats: values.changes.diff ?? null,
+      changeRisk: values.changes.risk ? { score: values.changes.risk.score, level: values.changes.risk.level, reasons: values.changes.risk.reasons } : null,
+      scan: scan.value,
+      endpointErrors,
+      status,
+      source: 'api' as const,
+    },
+  }
+}
+
+export function useHandoffData(repositoryId: number | null, refreshKey = 0) {
   const [state, setState] = useState<{ loading: boolean; error: string | null; data: HandoffData | null }>({ loading: true, error: null, data: null })
   useEffect(() => {
     let active = true
     if (!repositoryId) { setState({ loading: false, error: null, data: null }); return () => { active = false } }
     setState(current => ({ ...current, loading: true, error: null }))
-    Promise.all([
-      api.overview(repositoryId).catch(() => null),
-      api.files(repositoryId).catch(() => ({ items: [] })),
-      api.graph(repositoryId).catch(() => ({ nodes: [], edges: [] })),
-      api.hotspots(repositoryId).catch(() => ({ items: [] })),
-      api.changes(repositoryId).catch(() => ({ changed_files: [], tests: [] as TestRelationship[], affected_files: [], diff: null, risk: null })),
-      api.git.history(repositoryId, 1, 20).catch(() => null),
-      api.gitStatus(repositoryId).catch(() => null),
-    ]).then(([overview, files, graph, hotspots, changes, history, git]) => {
-      if (!active) return
-      const hasApiData = Boolean(overview || files.items.length || graph.nodes.length || hotspots.items.length || changes.tests.length || history)
-       const changedFiles: GitChangedFile[] = (changes.changed_files ?? []).map(file => { const item = file as unknown as Record<string, unknown>; const git = (item.git ?? item) as Record<string, unknown>; return { path: String(git.path ?? item.path ?? ''), old_path: (git.rename_from as string | null) ?? (item.old_path as string | null) ?? null, status: String(git.status ?? item.status ?? ''), additions: Number(git.additions ?? item.additions ?? 0), deletions: Number(git.deletions ?? item.deletions ?? 0), file_id: (item.file_id as number | null) ?? null, unresolved: Boolean(item.unresolved), diff_lines: Array.isArray(item.diff_lines) ? item.diff_lines as GitChangedFile['diff_lines'] : [] } })
-      setState({ loading: false, error: null, data: { overview, files: files.items, search: [], graph, hotspots: hotspots.items, tests: changes.tests, history, git, changedFiles, affectedFiles: changes.affected_files ?? [], changeStats: changes.diff ?? null, changeRisk: changes.risk ? { score: changes.risk.score, level: changes.risk.level, reasons: changes.risk.reasons } : null, source: hasApiData ? 'api' : 'fallback' } })
-    }).catch(error => active && setState({ loading: false, error: error instanceof Error ? error.message : 'Unable to load repository intelligence.', data: null }))
+    loadHandoffData(repositoryId).then(next => active && setState(next)).catch(error => active && setState({ loading: false, error: errorMessage(error), data: null }))
     return () => { active = false }
-  }, [repositoryId])
+  }, [repositoryId, refreshKey])
   return state
 }
 

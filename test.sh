@@ -10,6 +10,9 @@ uv run --directory backend pytest
 echo "== frontend typecheck =="
 npm --prefix frontend run typecheck
 
+echo "== frontend tests =="
+npm --prefix frontend run test
+
 echo "== frontend build =="
 npm --prefix frontend run build
 

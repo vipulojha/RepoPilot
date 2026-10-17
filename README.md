@@ -122,7 +122,7 @@ sh ./test.sh
 ```
 
 It runs backend bytecode compilation, all backend tests, frontend TypeScript
-typechecking, and the production frontend build. It does not install packages, so
+typechecking, focused frontend tests, and the production frontend build. It does not install packages, so
 it works offline after the setup commands have completed. If GNU make is
 available, `make test` runs the same checks.
 
@@ -132,6 +132,7 @@ The individual commands are:
 uv run --directory backend python -m compileall app
 uv run --directory backend pytest
 npm --prefix frontend run typecheck
+npm --prefix frontend run test
 npm --prefix frontend run build
 ```
 
