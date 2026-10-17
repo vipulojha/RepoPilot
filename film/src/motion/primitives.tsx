@@ -8,7 +8,7 @@ import {
 } from 'remotion';
 
 export type Range = {from: number; to: number};
-export type Point = {x: number; y: number};
+type Point = {x: number; y: number};
 
 const progress = (frame: number, range: Range, easing = Easing.inOut(Easing.cubic)) =>
   interpolate(frame, [range.from, range.to], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing});
@@ -19,8 +19,8 @@ const animatedStyle = (opacity: number, scale = 1, x = 0, y = 0): CSSProperties 
   translate: `${x}px ${y}px`,
 });
 
-export type CameraViewportProps = {children: ReactNode; range?: Range; scale?: number; x?: number; y?: number; className?: string; style?: CSSProperties};
-export const CameraViewport: React.FC<CameraViewportProps> = ({children, range = {from: 0, to: 30}, scale = 1.08, x = 0, y = 0, className, style}) => {
+type CameraViewportProps = {children: ReactNode; range?: Range; scale?: number; x?: number; y?: number; className?: string; style?: CSSProperties};
+const CameraViewport: React.FC<CameraViewportProps> = ({children, range = {from: 0, to: 30}, scale = 1.08, x = 0, y = 0, className, style}) => {
   const frame = useCurrentFrame();
   const amount = progress(frame, range);
   return <div className={className} style={{...style, ...animatedStyle(1, interpolate(amount, [0, 1], [1, scale]), x * amount, y * amount)}}>{children}</div>;

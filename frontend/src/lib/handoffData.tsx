@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import { api, type GitHistory, type GraphNode, type GraphEdge, type Hotspot, type Overview, type RepositoryFile, type SearchHit, type TestRelationship, type GitStatus, type GitChangedFile, type ImpactItem, type Scan } from './api/client'
 
 export type HandoffEndpoint = 'scan' | 'overview' | 'files' | 'graph' | 'hotspots' | 'changes' | 'history' | 'git'
@@ -33,9 +33,6 @@ export interface HandoffData {
   status: HandoffStatus
   source: 'api'
 }
-export const HandoffDataContext = createContext<HandoffData | null>(null)
-export const useHandoffDataContext = () => useContext(HandoffDataContext)
-
 export async function loadHandoffData(repositoryId: number) {
   const [scan, overview, files, graph, hotspots, changes, history, git] = await Promise.all([
     settle(api.latestScan(repositoryId)),
@@ -103,12 +100,4 @@ export function useHandoffData(repositoryId: number | null, refreshKey = 0) {
     return () => { active = false }
   }, [repositoryId, refreshKey])
   return state
-}
-
-export function HandoffDataBoundary({ repositoryId, children }: { repositoryId: number | null; children: (data: HandoffData) => ReactNode }) {
-  const state = useHandoffData(repositoryId)
-  if (state.loading) return <div className="state-card"><strong>Loading repository intelligence…</strong><span>Fetching the current snapshot from the API.</span></div>
-  if (state.error) return <div className="state-card"><strong>Unable to load repository intelligence</strong><span>{state.error}</span></div>
-  if (!state.data) return <div className="state-card"><strong>Connect a repository to begin</strong><span>No repository is selected.</span></div>
-  return <HandoffDataContext.Provider value={state.data}>{children(state.data)}</HandoffDataContext.Provider>
 }

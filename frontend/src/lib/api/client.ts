@@ -1,6 +1,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
 
-export interface HealthResponse {
+interface HealthResponse {
   status: string
   service: string
   version: string
@@ -15,12 +15,12 @@ export interface Repository {
   updated_at: string
 }
 
-export interface RepositoryRegistration {
+interface RepositoryRegistration {
   name: string
   path: string
   branch?: string
 }
-export interface OnboardingInspection { path:string; exists:boolean; kind:'folder'|'file'; canonical_path:string|null; repository_root:string|null; repository_name:string|null; branch:string|null; is_git_repository:boolean; is_project:boolean; is_empty:boolean; is_registered:boolean; repository_id:number|null; supported_file:boolean|null; standalone_supported:boolean; message:string|null }
+interface OnboardingInspection { path:string; exists:boolean; kind:'folder'|'file'; canonical_path:string|null; repository_root:string|null; repository_name:string|null; branch:string|null; is_git_repository:boolean; is_project:boolean; is_empty:boolean; is_registered:boolean; repository_id:number|null; supported_file:boolean|null; standalone_supported:boolean; message:string|null }
 
 export interface Scan {
   id: number
@@ -51,7 +51,7 @@ export interface RepositoryFile {
   warning: string | null
 }
 
-export interface FileTreeNode {
+interface FileTreeNode {
   name: string
   path: string
   kind: 'directory' | 'file'
@@ -61,7 +61,7 @@ export interface FileTreeNode {
 }
 export interface SearchHit { type: string; file_id: number; symbol_id: number | null; path: string; name: string; language: string | null; line: number | null; snippet: string; rank: number }
 export interface ImpactItem { file_id: number; path: string; depth: number; changed_root_ids: number[]; dependency_path: { file_id: number; path: string }[]; evidence: { imported_name: string; kind: string; source_line: number; source_column: number; evidence: string }[] }
-export interface ImpactTestValidation { file_id: number; file_path: string; test_file_id?: number; test_path?: string; status: string; tag: string; cases: string; detail: string; type: 'passing' | 'warning' | 'error'; evidence_level?: string }
+interface ImpactTestValidation { file_id: number; file_path: string; test_file_id?: number; test_path?: string; status: string; tag: string; cases: string; detail: string; type: 'passing' | 'warning' | 'error'; evidence_level?: string }
 export interface GraphNode { id: number; path: string; name: string; language: string; classification: string; is_test: boolean; incoming: number; outgoing: number }
 export interface GraphEdge { id: number; source: number; target: number; kind: string; imported_name: string; source_line: number; source_column: number; evidence: string }
 export interface Hotspot { file_id:number; path:string; name:string; language:string; is_test:boolean; score:number; rank:number; metrics:{lines:number;symbols:number;fan_in:number;fan_out:number;impact_reach:number}; reasons:string[] }
@@ -90,15 +90,15 @@ export interface GitStatus {
 export interface GitChangedFile { path:string; old_path:string|null; status:string; additions:number; deletions:number; file_id:number|null; unresolved?:boolean; diff_lines?:DiffLine[] }
 export interface GitCommit { sha:string; short_sha:string; subject:string; author:string; committed_at:string; parents:string[]; is_merge:boolean; changed_files:number; additions:number; deletions:number; files:GitChangedFile[] }
 export interface GitHistory { items:GitCommit[]; page:number; limit:number; has_more:boolean; ref:string|null; detached:boolean; empty:boolean }
-export interface GitCommitDetail extends GitCommit {}
-export interface GitFileHistory { file_id:number; path:string; commits:GitCommit[]; next_cursor:string|null; has_more:boolean; truncated:boolean }
-export interface GitCompare { base:string; head:string; files:{path:string;status:string;additions:number;deletions:number;file_id:number|null}[]; additions:number; deletions:number; truncated:boolean }
+interface GitCommitDetail extends GitCommit {}
+interface GitFileHistory { file_id:number; path:string; commits:GitCommit[]; next_cursor:string|null; has_more:boolean; truncated:boolean }
+interface GitCompare { base:string; head:string; files:{path:string;status:string;additions:number;deletions:number;file_id:number|null}[]; additions:number; deletions:number; truncated:boolean }
 export interface DiffLine { type:'add'|'del'|'context'; code:string; old_num?:number; new_num?:number }
-export interface ChangedFileAnalysis { git?:GitChangedFile; path:string; old_path:string|null; status:string; additions:number; deletions:number; file_id:number|null; affected:boolean; unresolved:boolean; diff_lines:DiffLine[] }
-export interface ChangesResponse { state:string; repository_id:number; snapshot_id:number|null; git:GitStatus|null; diff:{files:number;additions:number;deletions:number}; changed_files:ChangedFileAnalysis[]; affected_files:ImpactItem[]; hotspots:Hotspot[]; tests:TestRelationship[]; risk:{score:number;level:string;reasons:string[];thresholds:Record<string,number>}; truncated:boolean }
-export type GitAction = 'stage'|'unstage'|'commit'|'branch_create'|'branch_switch'|'fetch'|'push'|'pull'|'revert'|'stash_create'|'stash_list'|'stash_apply'|'stash_pop'|'stash_drop'
-export type GitActionPayload = { action:GitAction; paths?:string[]; message?:string; name?:string; start_point?:string; confirm_dirty?:boolean; remote?:string; branch?:string; commit?:string; stash?:string; confirm?:boolean }
-export interface GitActionReceipt { action:GitAction; status:'succeeded'|'rejected'|'conflict'|'failed'; message:string; recovery_guidance?:string|null; git:GitStatus|null; intelligence_stale:boolean; stdout_summary?:string|null }
+interface ChangedFileAnalysis { git?:GitChangedFile; path:string; old_path:string|null; status:string; additions:number; deletions:number; file_id:number|null; affected:boolean; unresolved:boolean; diff_lines:DiffLine[] }
+interface ChangesResponse { state:string; repository_id:number; snapshot_id:number|null; git:GitStatus|null; diff:{files:number;additions:number;deletions:number}; changed_files:ChangedFileAnalysis[]; affected_files:ImpactItem[]; hotspots:Hotspot[]; tests:TestRelationship[]; risk:{score:number;level:string;reasons:string[];thresholds:Record<string,number>}; truncated:boolean }
+type GitAction = 'stage'|'unstage'|'commit'|'branch_create'|'branch_switch'|'fetch'|'push'|'pull'|'revert'|'stash_create'|'stash_list'|'stash_apply'|'stash_pop'|'stash_drop'
+type GitActionPayload = { action:GitAction; paths?:string[]; message?:string; name?:string; start_point?:string; confirm_dirty?:boolean; remote?:string; branch?:string; commit?:string; stash?:string; confirm?:boolean }
+interface GitActionReceipt { action:GitAction; status:'succeeded'|'rejected'|'conflict'|'failed'; message:string; recovery_guidance?:string|null; git:GitStatus|null; intelligence_stale:boolean; stdout_summary?:string|null }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
